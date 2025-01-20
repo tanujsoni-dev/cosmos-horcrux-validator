@@ -1,0 +1,38 @@
+---
+- name: Apply System Hardening
+  hosts: all
+  become: true
+  
+  vars:
+    # SSH Hardening
+    ssh_permit_root_login: "without-password"
+    ssh_allow_users: ["root", "validator", "signer"]
+    ssh_client_password_login: false
+    ssh_server_password_login: false
+    ssh_use_pam: true
+    
+    # OS Hardening
+    sysctl_overwrite:
+      # Enable IPv4 traffic forwarding for Docker
+      net.ipv4.ip_forward: 1
+    os_auth_retries: 3
+    os_auth_lockout_time: 600
+    os_auth_timeout: 60
+    
+    # Audit Hardening
+    auditd_max_log_file: 100
+    auditd_max_log_file_action: keep_logs
+    
+    # Docker specific hardening
+    docker_daemon_options:
+      icc: false
+      no-new-privileges: true
+      userns-remap: "default"
+      live-restore: true
+      userland-proxy: false
+      log-level: "warn"
+
+  roles:
+    - role: devsec.hardening.ssh_hardening
+    - role: devsec.hardening.os_hardening
+    - role: devsec.hardening.audit_hardening 

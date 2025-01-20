@@ -16,13 +16,18 @@
     docker_service_state: started
     docker_service_enabled: true
     
-    # Docker daemon options
+    # Docker daemon options with basic security
     docker_daemon_options:
       storage-driver: "overlay2"
       log-driver: "json-file"
       log-opts:
         max-size: "10m"
         max-file: "3"
+      live-restore: true
+      userland-proxy: false
+      log-level: "info"
+      # Using default seccomp profile
+      seccomp-profile: "/etc/docker/default-seccomp.json"
 
     # Docker users to be added to docker group
     docker_users:
@@ -31,21 +36,37 @@
       - "signer"
 
   pre_tasks:
-    - name: Create validator user
-      user:
-        name: validator
-        shell: /bin/bash
-        create_home: yes
-        system: yes
-      when: "'fullnode' in group_names"
+    - name: Ensure Docker directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      with_items:
+        - /etc/docker
 
-    - name: Create signer user
-      user:
-        name: signer
-        shell: /bin/bash
-        create_home: yes
-        system: yes
-      when: "'signer' in group_names"
+    - name: Download default Docker seccomp profile
+      get_url:
+        url: https://raw.githubusercontent.com/docker/engine/master/profiles/seccomp/default.json
+        dest: /etc/docker/default-seccomp.json
+        mode: '0644'
+        force: no
+
+    - name: Stop Docker service if running
+      systemd:
+        name: docker
+        state: stopped
+      failed_when: false
 
   roles:
     - geerlingguy.docker
+
+  post_tasks:
+    - name: Verify Docker service status
+      systemd:
+        name: docker
+        state: started
+      register: docker_service
+      
+    - name: Show Docker service status
+      debug:
+        var: docker_service
