@@ -33,6 +33,6 @@
       log-level: "warn"
 
   roles:
-    - role: devsec.hardening.ssh_hardening
+    # - role: devsec.hardening.ssh_hardening 
     - role: devsec.hardening.os_hardening
     - role: devsec.hardening.audit_hardening 

@@ -1,10 +1,32 @@
 all:
   children:
-    fullnodes:
+    noble-fullnode-testnet:
       hosts:
-        fullnode-3:
+        noble-fullnode-testnet:
           ansible_host: 162.55.34.89
           ansible_user: root
+      vars:
+        chain:
+          name: noble
+          id: grand-1
+          image: ghcr.io/strangelove-ventures/heighliner/noble:v8.0.3
+          network: testnet
+        network:
+          bootstrap_peers: "ade4d8bc8cbe014af6ebdf3cb7b1e9ad36f412c0@testnet-seeds.polkachu.com:21556"
+          persistent_peers: "6e43f91fbc6ab984cb3241feeab37b33d222bc82@65.109.67.126:26656,f2f0dc25f7d041b41989de3de8f5606418affe8c@188.34.180.243:26656"
+          rpc_servers: "https://noble-testnet-rpc.polkachu.com:443"
+        sources:
+          snapshot_url: "https://snapshots.polkachu.com/testnet-snapshots/noble/noble_21869078.tar.lz4"
+          genesis_url: "https://raw.githubusercontent.com/strangelove-ventures/noble-networks/main/testnet/grand-1/genesis.json"
+        node_user: validator
+        node_group: validator
+        node_home: /home/validator
+        node_uid: 1000
+        node_gid: 1000
+        cosmos:
+          min_gas_price: "0.025uusdc"  # Noble-specific gas price
+
+ 
     signers:
       hosts:
         signer-3:

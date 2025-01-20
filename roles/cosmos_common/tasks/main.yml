@@ -1,0 +1,148 @@
+---
+- name: Create validator group
+  group:
+    name: "{{ node_group }}"
+    state: present
+
+- name: Create validator user
+  user:
+    name: "{{ node_user }}"
+    group: "{{ node_group }}"
+    shell: /bin/bash
+    create_home: yes
+    home: "{{ node_home }}"
+
+- name: Add validator user to docker group
+  user:
+    name: "{{ node_user }}"
+    groups: docker
+    append: yes
+
+- name: Create base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+  with_items:
+    - "{{ dirs.root }}"
+    - "{{ dirs.chain_home }}"
+    - "{{ dirs.snapshot }}"
+    - "{{ dirs.backup }}"
+
+# Let the init command create chain_home and its structure
+- name: Initialize node if not exists
+  docker_container:
+    name: "init-{{ chain.name }}-{{ chain.network }}"
+    image: "{{ chain.image }}"
+    command: "init {{ node_moniker }} --chain-id {{ chain.id }} --home /data"
+    volumes:
+      - "{{ dirs.chain_home }}:/data"
+    state: started
+    auto_remove: true
+    entrypoint: "{{ chain_binary }}"
+    user: "{{ node_uid }}:{{ node_gid }}"
+  when: >
+    not (dirs.chain_home + '/config') is directory or
+    not (dirs.chain_home + '/data') is directory
+
+- name: Download genesis file
+  get_url:
+    url: "{{ sources.genesis_url }}"
+    dest: "{{ dirs.chain_home }}/config/genesis.json"
+    mode: '0640'
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+
+- name: Configure app.toml settings
+  block:
+    - name: Configure pruning settings
+      command: >
+        sed -i 
+        -e 's/^pruning *=.*$/pruning = "{{ cosmos.pruning.mode | default("custom") }}"/'
+        -e 's/^pruning-keep-recent *=.*$/pruning-keep-recent = "{{ cosmos.pruning.keep_recent | default("100") }}"/'
+        -e 's/^pruning-keep-every *=.*$/pruning-keep-every = "{{ cosmos.pruning.keep_every | default("0") }}"/'
+        -e 's/^pruning-interval *=.*$/pruning-interval = "{{ cosmos.pruning.interval | default("10") }}"/'
+        "{{ dirs.chain_home }}/config/app.toml"
+
+    - name: Configure state sync settings in app.toml
+      command: >
+        sed -i 
+        -e 's/^snapshot-interval *=.*$/snapshot-interval = {{ cosmos.state_sync.snapshot_interval | default(2000) }}/'
+        "{{ dirs.chain_home }}/config/app.toml"
+
+    - name: Configure minimum gas price
+      command: >
+        sed -i 
+        -e 's/^minimum-gas-prices *=.*$/minimum-gas-prices = "{{ cosmos.min_gas_price | default("0.025uusdc") }}"/'
+        "{{ dirs.chain_home }}/config/app.toml"
+
+    - name: Configure min retain blocks
+      command: >
+        sed -i 
+        -e 's/^min-retain-blocks *=.*$/min-retain-blocks = {{ cosmos.min_retain_blocks | default(100) }}/'
+        "{{ dirs.chain_home }}/config/app.toml"
+
+- name: Configure config.toml settings
+  block:
+    - name: Configure indexer settings
+      command: >
+        sed -i 
+        -e 's/^indexer *=.*$/indexer = "{{ cosmos.indexer | default("null") }}"/'
+        "{{ dirs.chain_home }}/config/config.toml"
+
+    - name: Configure state sync settings in config.toml
+      command: >
+        sed -i 
+        -e 's/^trust-period *=.*$/trust-period = "{{ cosmos.state_sync.trust_period | default("168h") }}"/'
+        -e 's/^chunk-request-timeout *=.*$/chunk-request-timeout = "{{ cosmos.state_sync.chunk_request_timeout | default("10s") }}"/'
+        "{{ dirs.chain_home }}/config/config.toml"
+
+    - name: Configure p2p settings
+      command: >
+        sed -i 
+        -e 's/^bootstrap-peers *=.*$/bootstrap-peers = "{{ network.bootstrap_peers | default("") }}"/'
+        -e 's/^persistent-peers *=.*$/persistent-peers = "{{ network.persistent_peers | default("") }}"/'
+        "{{ dirs.chain_home }}/config/config.toml"
+      when: network.bootstrap_peers is defined or network.persistent_peers is defined
+
+- name: Configure state sync
+  block:
+    - name: Get latest block height
+      uri:
+        url: "{{ network.rpc_servers }}/block"
+        return_content: yes
+      register: latest_block
+      when: network.rpc_servers is defined
+
+    - name: Get trust block
+      uri:
+        url: "{{ network.rpc_servers }}/block?height={{ latest_block.json.result.block.header.height | int - 2000 }}"
+        return_content: yes
+      register: trust_block
+      when: latest_block is defined and latest_block.json is defined
+
+    - name: Configure state sync settings
+      command: >
+        sed -i.bak
+        -e 's/^enable *=.*$/enable = true/'
+        -e 's|^rpc_servers *=.*$|rpc_servers = "{{ network.rpc_servers }},{{ network.rpc_servers }}"|'
+        -e 's|^trust_height *=.*$|trust_height = {{ latest_block.json.result.block.header.height | int - 2000 }}|'
+        -e 's|^trust_hash *=.*$|trust_hash = "{{ trust_block.json.result.block_id.hash }}"|'
+        "{{ dirs.chain_home }}/config/config.toml"
+      when: trust_block is defined and trust_block.json is defined
+  when: network.rpc_servers is defined
+
+- name: Create docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ node_home }}/docker-compose.yml"
+    mode: '0640'
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+
+- name: Start node
+  community.docker.docker_compose_v2:
+    project_src: "{{ node_home }}"
+    state: present 

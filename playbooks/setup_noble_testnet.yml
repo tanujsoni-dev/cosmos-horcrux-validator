@@ -1,0 +1,9 @@
+---
+- name: Setup Noble Testnet Node
+  hosts: noble-fullnode-testnet
+  become: true
+  collections:
+    - community.docker
+
+  roles:
+    - role: ../roles/cosmos_common 
