@@ -1,0 +1,51 @@
+---
+- name: Install Docker
+  hosts: all
+  become: true
+
+  vars:
+    # Docker package configuration
+    docker_package: "docker-ce"
+    docker_package_state: present
+
+    # Docker compose configuration
+    docker_install_compose_plugin: true
+    docker_compose_package_state: present
+
+    # Service configuration
+    docker_service_state: started
+    docker_service_enabled: true
+    
+    # Docker daemon options
+    docker_daemon_options:
+      storage-driver: "overlay2"
+      log-driver: "json-file"
+      log-opts:
+        max-size: "10m"
+        max-file: "3"
+
+    # Docker users to be added to docker group
+    docker_users:
+      - "{{ ansible_user }}"
+      - "validator"
+      - "signer"
+
+  pre_tasks:
+    - name: Create validator user
+      user:
+        name: validator
+        shell: /bin/bash
+        create_home: yes
+        system: yes
+      when: "'fullnode' in group_names"
+
+    - name: Create signer user
+      user:
+        name: signer
+        shell: /bin/bash
+        create_home: yes
+        system: yes
+      when: "'signer' in group_names"
+
+  roles:
+    - geerlingguy.docker

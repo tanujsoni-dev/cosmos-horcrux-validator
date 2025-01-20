@@ -1,0 +1,12 @@
+all:
+  children:
+    fullnodes:
+      hosts:
+        fullnode-3:
+          ansible_host: 162.55.34.89
+          ansible_user: root
+    signers:
+      hosts:
+        signer-3:
+          ansible_host: 49.13.135.12
+          ansible_user: root
