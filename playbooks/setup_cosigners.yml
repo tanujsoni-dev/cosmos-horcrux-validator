@@ -1,0 +1,35 @@
+---
+- name: Set up Horcrux Cosigners
+  hosts: signers
+  become: true
+  collections:
+    - community.docker
+
+  pre_tasks:
+    - name: Verify requirements
+      fail:
+        msg: |
+          Missing required variables:
+          {% if chain is not defined %}chain dictionary with name, network, image{% endif %}
+          {% if node_uid is not defined %}node_uid{% endif %}
+          {% if node_gid is not defined %}node_gid{% endif %}
+          {% if node_user is not defined %}node_user{% endif %}
+          {% if node_group is not defined %}node_group{% endif %}
+          {% if horcrux.threshold is not defined %}horcrux.threshold{% endif %}
+          {% if horcrux.total_cosigners is not defined %}horcrux.total_cosigners{% endif %}
+      when: >
+        chain is not defined or
+        node_uid is not defined or
+        node_gid is not defined or
+        node_user is not defined or
+        node_group is not defined or
+        horcrux.threshold is not defined or
+        horcrux.total_cosigners is not defined
+
+    - name: Verify threshold configuration
+      fail:
+        msg: "Threshold ({{ horcrux.threshold }}) must be less than or equal to total cosigners ({{ horcrux.total_cosigners }})"
+      when: horcrux.threshold > horcrux.total_cosigners
+
+  roles:
+    - role: ../roles/cosmos_signer 

@@ -1,0 +1,15 @@
+signMode: threshold
+thresholdMode:
+  threshold: {{ horcrux.threshold }}
+  cosigners:
+{% for i in range(1, horcrux.total_cosigners + 1) %}
+  - shardID: {{ i }}
+    p2pAddr: tcp://{{ hostvars[inventory_hostname]['cosigner_' ~ i ~ '_host'] }}:{{ hostvars[inventory_hostname]['cosigner_' ~ i ~ '_port'] }}
+{% endfor %}
+  grpcTimeout: 1000ms
+  raftTimeout: 1000ms
+rpc:
+  listen_address: "tcp://0.0.0.0:{{ hostvars[inventory_hostname]['cosigner_' ~ item ~ '_port'] }}"
+debugAddr: ""
+grpcAddr: ""
+maxReadSize: 1048576 

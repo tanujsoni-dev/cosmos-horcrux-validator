@@ -1,0 +1,39 @@
+---
+- name: Deploy Horcrux Signer
+  hosts: signers
+  become: true
+  collections:
+    - community.docker
+
+  pre_tasks:
+    - name: Verify requirements
+      fail:
+        msg: |
+          Missing required variables:
+          {% if chain is not defined %}chain dictionary with name, network{% endif %}
+          {% if horcrux.threshold is not defined %}horcrux.threshold{% endif %}
+          {% if horcrux.total_cosigners is not defined %}horcrux.total_cosigners{% endif %}
+      when: >
+        chain is not defined or
+        horcrux.threshold is not defined or
+        horcrux.total_cosigners is not defined
+
+  roles:
+    - role: ../roles/cosmos_signer
+      vars:
+        generate_shares: "{{ 'shares' in ansible_run_tags }}"
+
+  post_tasks:
+    - name: Display next steps
+      debug:
+        msg: |
+          To generate new validator key and shares:
+          ansible-playbook playbooks/deploy_signer.yml --tags shares
+
+          The new validator key will be saved to ./validator_key/priv_validator_key.json
+          Copy this file to your validator node's config directory.
+          IMPORTANT: Secure the validator key file with: chmod 600 validator_key/priv_validator_key.json
+
+          To manage cosigners:
+          Start: ansible-playbook playbooks/deploy_signer.yml --tags start
+          Stop: ansible-playbook playbooks/deploy_signer.yml --tags stop 

@@ -1,0 +1,18 @@
+version: '3'
+services:
+  horcrux:
+    image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+    entrypoint: horcrux
+    command: start --home /root/.horcrux
+    volumes:
+      - ./:/root/.horcrux
+    user: "{{ node_uid }}:{{ node_gid }}"
+    restart: unless-stopped
+    ports:
+      - "{{ hostvars[inventory_hostname]['cosigner_' ~ item ~ '_port'] }}:{{ hostvars[inventory_hostname]['cosigner_' ~ item ~ '_port'] }}"
+    networks:
+      - horcrux
+
+networks:
+  horcrux:
+    name: horcrux-{{ chain.name }}-{{ chain.network }} 

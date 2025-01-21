@@ -1,0 +1,105 @@
+---
+- name: Create signer user and group
+  block:
+    - name: Create signer group
+      group:
+        name: "{{ node_group }}"
+        gid: "{{ node_gid }}"
+        state: present
+
+    - name: Create signer user
+      user:
+        name: "{{ node_user }}"
+        uid: "{{ node_uid }}"
+        group: "{{ node_group }}"
+        home: "{{ node_home }}"
+        shell: /bin/bash
+        system: no
+        create_home: yes
+  tags: setup
+
+- name: Create Horcrux directories
+  file:
+    path: "{{ horcrux.state_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+    mode: '0700'
+  with_items:
+    - ""
+    - "config"
+    - "state"
+    - "raft"
+    - "shards"
+  tags: setup
+
+- name: Setup Horcrux configuration
+  block:
+    - name: Initialize Horcrux configuration
+      community.docker.docker_container:
+        name: horcrux-init
+        image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+        entrypoint: horcrux
+        command: >
+          config init
+          {% for i in range(1, horcrux.total_cosigners + 1) %}
+          --cosigner "tcp://{{ hostvars[inventory_hostname]['cosigner_' ~ i ~ '_host'] }}:{{ hostvars[inventory_hostname]['cosigner_' ~ i ~ '_port'] }}"
+          {% endfor %}
+          --threshold {{ horcrux.threshold }}
+          --grpc-timeout 1500ms
+          --raft-timeout 1500ms
+        volumes:
+          - "{{ horcrux.state_dir }}:/root/.horcrux"
+        user: "{{ node_uid }}:{{ node_gid }}"
+        auto_remove: true
+
+    - name: Create ECIES shards
+      community.docker.docker_container:
+        name: horcrux-ecies
+        image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+        entrypoint: horcrux
+        command: >
+          create-ecies-shards
+          --out /root/.horcrux/shards
+          --shards {{ horcrux.total_cosigners }}
+        volumes:
+          - "{{ horcrux.state_dir }}:/root/.horcrux"
+        user: "{{ node_uid }}:{{ node_gid }}"
+        auto_remove: true
+
+    - name: Create ED25519 shards
+      community.docker.docker_container:
+        name: horcrux-ed25519
+        image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+        entrypoint: horcrux
+        command: >
+          create-ed25519-shards
+          --chain-id {{ chain.id }}
+          --key-file /root/.horcrux/priv_validator_key.json
+          --out /root/.horcrux/shards
+          --threshold {{ horcrux.threshold }}
+          --shards {{ horcrux.total_cosigners }}
+        volumes:
+          - "{{ horcrux.state_dir }}:/root/.horcrux"
+          - "{{ validator_key_path }}:/root/.horcrux/priv_validator_key.json"
+        user: "{{ node_uid }}:{{ node_gid }}"
+        auto_remove: true
+      when: validator_key_path is defined
+  tags: setup
+  when: init_config | default(false) | bool
+
+- name: Configure and start Horcrux
+  block:
+    - name: Create Docker Compose file
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ horcrux.state_dir }}/docker-compose.yml"
+        owner: "{{ node_user }}"
+        group: "{{ node_group }}"
+        mode: '0600'
+
+    - name: Start Horcrux service
+      community.docker.docker_compose_v2:
+        project_src: "{{ horcrux.state_dir }}"
+        state: present
+  tags: start 
