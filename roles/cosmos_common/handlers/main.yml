@@ -1,0 +1,7 @@
+---
+- name: restart chain
+  community.docker.docker_compose_v2:
+    project_src: "{{ node_home }}"
+    state: present
+    services: ["{{ chain.name }}-{{ chain.network }}"]
+    recreate: "always" 

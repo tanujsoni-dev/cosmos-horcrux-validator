@@ -1,4 +1,12 @@
 ---
+- name: Install required packages
+  apt:
+    name: 
+      - jq
+      - lz4
+    state: present
+    update_cache: yes
+
 - name: Create validator group
   group:
     name: "{{ node_group }}"
@@ -28,9 +36,6 @@
   with_items:
     - "{{ dirs.root }}"
     - "{{ dirs.chain_home }}"
-    - "{{ dirs.snapshot }}"
-    - "{{ dirs.backup }}"
-
 # Let the init command create chain_home and its structure
 - name: Initialize node if not exists
   docker_container:
@@ -55,42 +60,103 @@
     owner: "{{ node_user }}"
     group: "{{ node_group }}"
 
+- name: Check existing addressbook
+  block:
+    - name: Check if addressbook exists
+      stat:
+        path: "{{ dirs.chain_home }}/config/addrbook.json"
+      register: addressbook_stat
+
+    - name: Read addressbook content
+      shell: |
+        if [ -f "{{ dirs.chain_home }}/config/addrbook.json" ]; then
+          cat "{{ dirs.chain_home }}/config/addrbook.json" | jq -r '.addrs | length'
+        else
+          echo "0"
+        fi
+      register: peer_count
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Download fresh addressbook
+      get_url:
+        url: "{{ sources.addressbook_url }}"
+        dest: "{{ dirs.chain_home }}/config/addrbook.json"
+        mode: '0640'
+        owner: "{{ node_user }}"
+        group: "{{ node_group }}"
+        force: yes
+      when: >
+        sources.addressbook_url is defined and (
+          not addressbook_stat.stat.exists or
+          peer_count.stdout | int == 0 or
+          peer_count.failed
+        )
+      notify: restart chain
+
 - name: Configure app.toml settings
   block:
-    - name: Configure pruning settings
-      command: >
-        sed -i 
-        -e 's/^pruning *=.*$/pruning = "{{ cosmos.pruning.mode | default("custom") }}"/'
-        -e 's/^pruning-keep-recent *=.*$/pruning-keep-recent = "{{ cosmos.pruning.keep_recent | default("100") }}"/'
-        -e 's/^pruning-keep-every *=.*$/pruning-keep-every = "{{ cosmos.pruning.keep_every | default("0") }}"/'
-        -e 's/^pruning-interval *=.*$/pruning-interval = "{{ cosmos.pruning.interval | default("10") }}"/'
-        "{{ dirs.chain_home }}/config/app.toml"
+    - name: Ensure pruning settings exist and are set correctly
+      shell: |
+        if ! grep -q "^pruning =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'pruning = "{{ cosmos.pruning.mode | default("custom") }}"' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^pruning *=.*$/pruning = "{{ cosmos.pruning.mode | default("custom") }}"/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+        if ! grep -q "^pruning-keep-recent =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'pruning-keep-recent = "{{ cosmos.pruning.keep_recent | default("100") }}"' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^pruning-keep-recent *=.*$/pruning-keep-recent = "{{ cosmos.pruning.keep_recent | default("100") }}"/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+        if ! grep -q "^pruning-keep-every =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'pruning-keep-every = "{{ cosmos.pruning.keep_every | default("0") }}"' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^pruning-keep-every *=.*$/pruning-keep-every = "{{ cosmos.pruning.keep_every | default("0") }}"/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+        if ! grep -q "^pruning-interval =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'pruning-interval = "{{ cosmos.pruning.interval | default("10") }}"' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^pruning-interval *=.*$/pruning-interval = "{{ cosmos.pruning.interval | default("10") }}"/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+      notify: restart chain
 
-    - name: Configure state sync settings in app.toml
-      command: >
-        sed -i 
-        -e 's/^snapshot-interval *=.*$/snapshot-interval = {{ cosmos.state_sync.snapshot_interval | default(2000) }}/'
-        "{{ dirs.chain_home }}/config/app.toml"
+    - name: Ensure state sync settings exist in app.toml
+      shell: |
+        if ! grep -q "^snapshot-interval =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'snapshot-interval = {{ cosmos.state_sync.snapshot_interval | default(2000) }}' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^snapshot-interval *=.*$/snapshot-interval = {{ cosmos.state_sync.snapshot_interval | default(2000) }}/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+      notify: restart chain
 
-    - name: Configure minimum gas price
-      command: >
-        sed -i 
-        -e 's/^minimum-gas-prices *=.*$/minimum-gas-prices = "{{ cosmos.min_gas_price | default("0.025uusdc") }}"/'
-        "{{ dirs.chain_home }}/config/app.toml"
+    - name: Ensure minimum gas price exists
+      shell: |
+        if ! grep -q "^minimum-gas-prices =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'minimum-gas-prices = "{{ cosmos.min_gas_price | default("0.025uusdc") }}"' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^minimum-gas-prices *=.*$/minimum-gas-prices = "{{ cosmos.min_gas_price | default("0.025uusdc") }}"/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+      notify: restart chain
 
-    - name: Configure min retain blocks
-      command: >
-        sed -i 
-        -e 's/^min-retain-blocks *=.*$/min-retain-blocks = {{ cosmos.min_retain_blocks | default(100) }}/'
-        "{{ dirs.chain_home }}/config/app.toml"
+    - name: Ensure min retain blocks exists
+      shell: |
+        if ! grep -q "^min-retain-blocks =" "{{ dirs.chain_home }}/config/app.toml"; then
+          echo 'min-retain-blocks = {{ cosmos.min_retain_blocks | default(100) }}' >> "{{ dirs.chain_home }}/config/app.toml"
+        else
+          sed -i 's/^min-retain-blocks *=.*$/min-retain-blocks = {{ cosmos.min_retain_blocks | default(100) }}/' "{{ dirs.chain_home }}/config/app.toml"
+        fi
+      notify: restart chain
 
 - name: Configure config.toml settings
   block:
-    - name: Configure indexer settings
-      command: >
-        sed -i 
-        -e 's/^indexer *=.*$/indexer = "{{ cosmos.indexer | default("null") }}"/'
-        "{{ dirs.chain_home }}/config/config.toml"
+    - name: Ensure indexer settings exist
+      shell: |
+        if ! grep -q "^indexer =" "{{ dirs.chain_home }}/config/config.toml"; then
+          echo 'indexer = "{{ cosmos.indexer | default("null") }}"' >> "{{ dirs.chain_home }}/config/config.toml"
+        else
+          sed -i 's/^indexer *=.*$/indexer = "{{ cosmos.indexer | default("null") }}"/' "{{ dirs.chain_home }}/config/config.toml"
+        fi
+      notify: restart chain
 
     - name: Configure state sync settings in config.toml
       command: >
@@ -98,6 +164,7 @@
         -e 's/^trust-period *=.*$/trust-period = "{{ cosmos.state_sync.trust_period | default("168h") }}"/'
         -e 's/^chunk-request-timeout *=.*$/chunk-request-timeout = "{{ cosmos.state_sync.chunk_request_timeout | default("10s") }}"/'
         "{{ dirs.chain_home }}/config/config.toml"
+      notify: restart chain
 
     - name: Configure p2p settings
       command: >
@@ -105,7 +172,9 @@
         -e 's/^bootstrap-peers *=.*$/bootstrap-peers = "{{ network.bootstrap_peers | default("") }}"/'
         -e 's/^persistent-peers *=.*$/persistent-peers = "{{ network.persistent_peers | default("") }}"/'
         "{{ dirs.chain_home }}/config/config.toml"
-      when: network.bootstrap_peers is defined or network.persistent_peers is defined
+      when: 
+        - network.bootstrap_peers is defined or network.persistent_peers is defined
+      notify: restart chain
 
 - name: Configure state sync
   block:
@@ -132,6 +201,7 @@
         -e 's|^trust_hash *=.*$|trust_hash = "{{ trust_block.json.result.block_id.hash }}"|'
         "{{ dirs.chain_home }}/config/config.toml"
       when: trust_block is defined and trust_block.json is defined
+      notify: restart chain
   when: network.rpc_servers is defined
 
 - name: Create docker-compose.yml

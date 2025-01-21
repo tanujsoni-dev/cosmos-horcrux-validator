@@ -8,6 +8,7 @@ services:
       - {{ dirs.chain_home }}:/data
       - {{ dirs.snapshot }}:/snapshots
       - {{ dirs.backup }}:/backups
+      - {{ dirs.chain_home }}/tmp:/tmp/
     entrypoint: "{{ chain_binary }}"
     command: "start --home /data"
     environment:
