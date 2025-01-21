@@ -1,0 +1,26 @@
+---
+- name: Restore Chain from Snapshot
+  hosts: "{{ target_group }}"
+  become: true
+  collections:
+    - community.docker
+
+  pre_tasks:
+    - name: Verify requirements
+      fail:
+        msg: |
+          Missing required variables:
+          {% if target_group is not defined %}target_group{% endif %}
+          {% if chain is not defined %}chain dictionary with name, network, image{% endif %}
+          {% if sources.snapshot_url is not defined %}sources.snapshot_url{% endif %}
+          {% if node_uid is not defined %}node_uid{% endif %}
+          {% if node_gid is not defined %}node_gid{% endif %}
+      when: >
+        target_group is not defined or
+        chain is not defined or
+        sources.snapshot_url is not defined or
+        node_uid is not defined or
+        node_gid is not defined
+
+  roles:
+    - role: ../roles/cosmos_snapshot 

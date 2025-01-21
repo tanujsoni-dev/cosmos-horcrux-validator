@@ -1,0 +1,110 @@
+---
+- name: Install required packages
+  apt:
+    name: [jq, lz4, aria2, pv]
+    state: present
+    update_cache: yes
+
+- name: Stop running node
+  community.docker.docker_compose_v2:
+    project_src: "{{ node_home }}"
+    state: absent
+    services: ["{{ chain.name }}-{{ chain.network }}"]
+  ignore_errors: yes
+
+- name: Prepare directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+  loop:
+    - "{{ dirs.snapshot }}"
+    - "{{ dirs.chain_home }}/data"
+
+- name: Backup and reset
+  block:
+    - name: Backup validator state if exists
+      copy:
+        src: "{{ dirs.chain_home }}/data/priv_validator_state.json"
+        dest: "{{ dirs.chain_home }}/priv_validator_state.json.bak"
+        remote_src: yes
+        mode: '0600'
+      ignore_errors: yes
+
+    - name: Reset node state
+      docker_container:
+        name: "reset-{{ chain.name }}-{{ chain.network }}"
+        image: "{{ chain.image }}"
+        command: "tendermint unsafe-reset-all --home /data --keep-addr-book"
+        volumes:
+          - "{{ dirs.chain_home }}:/data"
+        state: started
+        auto_remove: true
+        entrypoint: "{{ chain_binary }}"
+        user: "{{ node_uid }}:{{ node_gid }}"
+      register: reset_result
+
+- name: Download and extract snapshot
+  block:
+    - name: Download snapshot
+      command: >
+        aria2c 
+        --dir="{{ dirs.snapshot }}"
+        --out="{{ sources.snapshot_url | basename }}"
+        --file-allocation=none
+        --max-connection-per-server=16
+        --split=16
+        --continue=true
+        --human-readable=true
+        "{{ sources.snapshot_url }}"
+      become_user: "{{ node_user }}"
+
+    - name: Extract snapshot
+      shell: |
+        cd {{ dirs.chain_home }} && \
+        lz4 -dc {{ dirs.snapshot }}/{{ sources.snapshot_url | basename }} | pv | tar xf -
+      become_user: "{{ node_user }}"
+
+    - name: Verify databases
+      stat:
+        path: "{{ dirs.chain_home }}/data/{{ item }}"
+      register: db_check
+      failed_when: not db_check.stat.exists or not db_check.stat.isdir
+      loop:
+        - application.db
+        - blockstore.db
+        - state.db
+
+    - name: Restore validator state if backup exists
+      copy:
+        src: "{{ dirs.chain_home }}/priv_validator_state.json.bak"
+        dest: "{{ dirs.chain_home }}/data/priv_validator_state.json"
+        remote_src: yes
+        mode: '0600'
+      ignore_errors: yes
+
+  always:
+    - name: Cleanup
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ dirs.snapshot }}/{{ sources.snapshot_url | basename }}"
+        - "{{ dirs.chain_home }}/priv_validator_state.json.bak"
+
+  rescue:
+    - name: Cleanup on failure
+      file:
+        path: "{{ dirs.chain_home }}/data"
+        state: absent
+
+    - name: Report failure
+      fail:
+        msg: "Snapshot restoration failed. Check the logs for details."
+
+- name: Start node
+  community.docker.docker_compose_v2:
+    project_src: "{{ node_home }}"
+    state: present 

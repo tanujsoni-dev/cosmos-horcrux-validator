@@ -1,0 +1,21 @@
+---
+# Directory structure
+dirs:
+  root: "{{ node_home }}/chains"
+  chain_home: "{{ node_home }}/chains/{{ chain.name }}_{{ chain.network }}"
+  snapshot: "{{ node_home }}/snapshots"
+  backup: "{{ node_home }}/backups"
+
+# Node user and group defaults
+node_user: validator
+node_group: validator
+node_home: /home/validator
+
+# Chain binary default
+chain_binary: "{{ chain.name }}d"
+
+# These are fallback values if not provided by the playbook
+snapshot_verify_databases:
+  - application.db
+  - blockstore.db
+  - state.db 

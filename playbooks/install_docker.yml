@@ -32,8 +32,6 @@
     # Docker users to be added to docker group
     docker_users:
       - "{{ ansible_user }}"
-      - "validator"
-      - "signer"
 
   pre_tasks:
     - name: Ensure Docker directories exist
