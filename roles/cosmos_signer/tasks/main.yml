@@ -1,4 +1,13 @@
 ---
+- name: Set default Horcrux configuration
+  set_fact:
+    horcrux: "{{ horcrux | default({}) | combine({
+      'base_port': horcrux.base_port | default(23670),
+      'state_dir': horcrux.state_dir | default(node_home + '/horcrux'),
+      'threshold': horcrux.threshold | default(3),
+      'total_cosigners': horcrux.total_cosigners | default(5)
+    }, recursive=True) }}"
+
 - name: Create signer user and group
   block:
     - name: Get group info
@@ -85,45 +94,66 @@
     cleanup: true
   register: shard_creation
 
-# - name: Copy shards to cosigner directories
-#   copy:
-#     src: "{{ horcrux.state_dir }}/shards/cosigner_{{ item }}"
-#     dest: "{{ horcrux.state_dir }}/cosigner-{{ item }}/config/share.json"
-#     remote_src: yes
-#     owner: "{{ node_user }}"
-#     group: "{{ node_group }}"
-#     mode: '0600'
-#   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+- name: Move shards to cosigner directories
+  block:
+    - name: Move shard files
+      command: mv "{{ horcrux.state_dir }}/shards/cosigner_{{ item }}/{{ chain.id }}_shard.json" "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
+      with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-# - name: Initialize config for each cosigner
-#   community.docker.docker_container:
-#     name: "horcrux-init-{{ item }}"
-#     image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
-#     entrypoint: horcrux
-#     command: >
-#       config init
-#       {% for i in range(1, horcrux.total_cosigners + 1) %}
-#       --cosigner "tcp://127.0.0.1:{{ horcrux.base_port + i }}"
-#       {% endfor %}
-#       --threshold {{ horcrux.threshold }}
-#       --grpc-timeout 1500ms
-#       --raft-timeout 1500ms
-#     volumes:
-#       - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/root/.horcrux"
-#     user: "{{ node_uid }}:{{ node_gid }}"
-#     detach: false
-#     cleanup: true
-#   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+    - name: Fix shard file permissions
+      file:
+        path: "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
+        owner: "{{ node_user }}"
+        group: "{{ node_group }}"
+        mode: '0600'
+      with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-# - name: Create Docker Compose file
-#   template:
-#     src: docker-compose.yml.j2
-#     dest: "{{ horcrux.state_dir }}/docker-compose.yml"
-#     owner: "{{ node_user }}"
-#     group: "{{ node_group }}"
-#     mode: '0600'
+    - name: Remove shards directory
+      file:
+        path: "{{ horcrux.state_dir }}/shards"
+        state: absent
 
-# - name: Start Horcrux service
-#   community.docker.docker_compose_v2:
-#     project_src: "{{ horcrux.state_dir }}"
-#     state: present 
+- name: Initialize config for each cosigner
+  community.docker.docker_container:
+    name: "horcrux-init-{{ item }}"
+    image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+    entrypoint: horcrux
+    command: >
+      config init
+      {% for i in range(1, horcrux.total_cosigners + 1) %}
+      --cosigner "tcp://{{ chain.name }}-{{ chain.network }}-cosigner-{{ i }}:{{ horcrux.base_port | default(23670) }}"
+      {% endfor %}
+      --threshold {{ horcrux.threshold }}
+      --grpc-timeout 1500ms
+      --raft-timeout 1500ms
+      --grpc-addr "0.0.0.0:23670"
+      --overwrite 
+      --home /data
+    volumes:
+      - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/data"
+    user: "root"
+    detach: false
+    cleanup: true
+  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+
+- name: Fix cosigner config permissions
+  file:
+    path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+    mode: '0750'
+    recurse: yes
+  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+
+- name: Create Docker Compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ horcrux.state_dir }}/docker-compose.yml"
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+    mode: '0600'
+
+- name: Start Horcrux service
+  community.docker.docker_compose_v2:
+    project_src: "{{ horcrux.state_dir }}"
+    state: present 
