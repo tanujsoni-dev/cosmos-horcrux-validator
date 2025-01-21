@@ -51,8 +51,16 @@
     mode: '0750'
   with_items:
     - "{{ horcrux.state_dir }}"
-    - "{{ horcrux.state_dir }}/shards"
     - "{{ horcrux.state_dir }}/tmp"
+
+- name: Create cosigner directories
+  file:
+    path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
+    state: directory
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+    mode: '0700'
+  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
 - name: Generate validator key
   community.docker.docker_container:
@@ -74,6 +82,14 @@
     owner: "{{ node_user }}"
     group: "{{ node_group }}"
     mode: '0600'
+
+- name: Fix Horcrux directory permissions
+  file:
+    path: "{{ horcrux.state_dir }}"
+    owner: "{{ node_user }}"
+    group: "{{ node_group }}"
+    mode: '0750'
+    recurse: yes
 
 - name: Create ED25519 shards from validator key
   community.docker.docker_container:
@@ -126,12 +142,13 @@
       --threshold {{ horcrux.threshold }}
       --grpc-timeout 1500ms
       --raft-timeout 1500ms
-      --grpc-addr "0.0.0.0:23670"
+      --gprc-address "0.0.0.0:23670"
+      --node "tcp://{{ chain.name }}-{{ chain.network }}-validator:26659"
       --overwrite 
       --home /data
     volumes:
       - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/data"
-    user: "root"
+    user: "{{ node_uid }}:{{ node_gid }}"
     detach: false
     cleanup: true
   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
@@ -141,7 +158,7 @@
     path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
     owner: "{{ node_user }}"
     group: "{{ node_group }}"
-    mode: '0750'
+    mode: '0700'
     recurse: yes
   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
