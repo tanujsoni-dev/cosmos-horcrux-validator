@@ -41,7 +41,7 @@ all:
           image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
           threshold: 3  # Minimum signers required
           total_cosigners: 5  # Total number of cosigners
-          state_dir: /opt/horcrux  # Directory for storing cosigner data
+          state_dir: /home/signer/horcrux  # Directory for storing cosigner data
         node_user: signer
         node_group: signer
         node_home: /home/signer

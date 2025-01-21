@@ -8,159 +8,147 @@
       'total_cosigners': horcrux.total_cosigners | default(5)
     }, recursive=True) }}"
 
-- name: Create signer user and group
-  block:
-    - name: Get group info
-      getent:
-        database: group
-        key: "{{ node_group }}"
-      ignore_errors: true
-      register: group_info
+# - name: Create signer group
+#   group:
+#     name: "{{ node_group }}"
+#     state: present
 
-    - name: Create signer group
-      group:
-        name: "{{ node_group }}"
-        gid: "{{ node_gid }}"
-        state: present
-      when: group_info.failed | default(true)
+# - name: Create signer user
+#   user:
+#     name: "{{ node_user }}"
+#     group: "{{ node_group }}"
+#     shell: /bin/bash
+#     create_home: yes
+#     home: "{{ node_home }}"
 
-    - name: Get user info
-      getent:
-        database: passwd
-        key: "{{ node_user }}"
-      ignore_errors: true
-      register: user_info
+# - name: Add signer user to Docker group
+#   user:
+#     name: "{{ node_user }}"
+#     groups: docker
+#     append: yes
 
-    - name: Create signer user
-      user:
-        name: "{{ node_user }}"
-        uid: "{{ node_uid }}"
-        group: "{{ node_group }}"
-        home: "{{ node_home }}"
-        shell: /bin/bash
-        system: no
-        create_home: yes
-      when: user_info.failed | default(true)
+# - name: Create base directories
+#   file:
+#     path: "{{ item }}"
+#     state: directory
+#     owner: "{{ node_user }}"
+#     group: "{{ node_group }}"
+#   with_items:
+#     - "{{ horcrux.state_dir }}"
 
-- name: Create base directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0750'
-  with_items:
-    - "{{ horcrux.state_dir }}"
-    - "{{ horcrux.state_dir }}/tmp"
+# - name: Create cosigner directories
+#   file:
+#     path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
+#     state: directory
+#     owner: "{{ node_user }}"
+#     group: "{{ node_group }}"
+#   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-- name: Create cosigner directories
-  file:
-    path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
-    state: directory
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0700'
-  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+# - name: Generate validator key
+#   community.docker.docker_container:
+#     name: tendermint-gen-key
+#     image: "{{ chain.tendermint_image | default('cometbft/cometbft:v0.38.2') }}"
+#     entrypoint: sh
+#     command: -c "cometbft init && cp /cometbft/config/priv_validator_key.json /data/priv_validator_key.json"
+#     volumes:
+#       - "{{ horcrux.state_dir }}:/data"
+#       - "{{ horcrux.state_dir }}/tmp/:/cometbft"
+#     user: "root"
+#     detach: false
+#     cleanup: true
 
-- name: Generate validator key
-  community.docker.docker_container:
-    name: tendermint-gen-key
-    image: "{{ chain.tendermint_image | default('cometbft/cometbft:v0.38.2') }}"
-    entrypoint: sh
-    command: -c "cometbft init && cp /cometbft/config/priv_validator_key.json /data/priv_validator_key.json"
-    volumes:
-      - "{{ horcrux.state_dir }}:/data"
-      - "{{ horcrux.state_dir }}/tmp:/cometbft"
-    user: "root"
-    detach: false
-    cleanup: true
-  register: key_creation
+# - name: Create ED25519 shards and ECIES keys and move to cosigner directories
+#   block:
+#     - name: Create ED25519 shards
+#       community.docker.docker_container:
+#         name: horcrux-ed25519
+#         image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+#         entrypoint: horcrux
+#         command: >
+#           create-ed25519-shards
+#           --chain-id {{ chain.id }}
+#           --key-file /data/priv_validator_key.json
+#           --out /data/shards
+#           --threshold {{ horcrux.threshold }}
+#           --shards {{ horcrux.total_cosigners }}
+#         volumes:
+#           - "{{ horcrux.state_dir }}:/data"
+#         user: "root"
+#         detach: false
+#         cleanup: true
 
-- name: Fix validator key permissions
-  file:
-    path: "{{ horcrux.state_dir }}/priv_validator_key.json"
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0600'
+#     - name: Generate ECIES keys
+#       community.docker.docker_container:
+#         name: horcrux-ecies-ed25519
+#         image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+#         entrypoint: horcrux
+#         command: >
+#           create-ecies-shards
+#           --shards {{ horcrux.total_cosigners }}
+#           --out /data/shards
+#         volumes:
+#           - "{{ horcrux.state_dir }}:/data"
+#         user: "root"
+#         detach: false
+#         cleanup: true
 
-- name: Fix Horcrux directory permissions
-  file:
-    path: "{{ horcrux.state_dir }}"
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0750'
-    recurse: yes
+#     - name: Move shard files to cosigner directories
+#       command: mv "{{ horcrux.state_dir }}/shards/cosigner_{{ item }}/{{ chain.id }}_shard.json" "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
+#       with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-- name: Create ED25519 shards from validator key
-  community.docker.docker_container:
-    name: horcrux-ed25519
-    image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
-    entrypoint: horcrux
-    command: >
-      create-ed25519-shards
-      --chain-id {{ chain.id }}
-      --key-file /data/priv_validator_key.json
-      --out /data/shards
-      --threshold {{ horcrux.threshold }}
-      --shards {{ horcrux.total_cosigners }}
-    volumes:
-      - "{{ horcrux.state_dir }}:/data"
-    user: "root"
-    detach: false
-    cleanup: true
-  register: shard_creation
+#     - name: Move ECIS keys to cosigner directories
+#       command: mv "{{ horcrux.state_dir }}/shards/cosigner_{{ item }}/ecies_keys.json" "{{ horcrux.state_dir }}/cosigner-{{ item }}/ecies_keys.json"
+#       with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+#     # - name: Set permissions for shard files
+#     #   file:
+#     #     path: "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
+#     #     owner: "{{ node_user }}"
+#     #     group: "{{ node_group }}"
+#     #     mode: '0600'
+#     #   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-- name: Move shards to cosigner directories
-  block:
-    - name: Move shard files
-      command: mv "{{ horcrux.state_dir }}/shards/cosigner_{{ item }}/{{ chain.id }}_shard.json" "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
-      with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+#     - name: Remove shards directory
+#       file:
+#         path: "{{ horcrux.state_dir }}/shards"
+#         state: absent
 
-    - name: Fix shard file permissions
-      file:
-        path: "{{ horcrux.state_dir }}/cosigner-{{ item }}/{{ chain.id }}_shard.json"
-        owner: "{{ node_user }}"
-        group: "{{ node_group }}"
-        mode: '0600'
-      with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+# - name: Initialize config for each cosigner
+#   community.docker.docker_container:
+#     name: "horcrux-init-{{ item }}"
+#     image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+#     entrypoint: horcrux
+#     command: >
+#       config init
+#       {% for i in range(1, horcrux.total_cosigners + 1) %}
+#       --cosigner "tcp://{{ chain.name }}-{{ chain.network }}-cosigner-{{ i }}:{{ horcrux.base_port | default(23670) }}"
+#       {% endfor %}
+#       --threshold {{ horcrux.threshold }}
+#       --grpc-timeout 1500ms
+#       --raft-timeout 1500ms
+#       --overwrite 
+#       --home /data
+#     volumes:
+#       - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/data:rw"
+#     user: "root"
+#     detach: false
+#     cleanup: true
+#   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-    - name: Remove shards directory
-      file:
-        path: "{{ horcrux.state_dir }}/shards"
-        state: absent
 
-- name: Initialize config for each cosigner
-  community.docker.docker_container:
-    name: "horcrux-init-{{ item }}"
-    image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
-    entrypoint: horcrux
-    command: >
-      config init
-      {% for i in range(1, horcrux.total_cosigners + 1) %}
-      --cosigner "tcp://{{ chain.name }}-{{ chain.network }}-cosigner-{{ i }}:{{ horcrux.base_port | default(23670) }}"
-      {% endfor %}
-      --threshold {{ horcrux.threshold }}
-      --grpc-timeout 1500ms
-      --raft-timeout 1500ms
-      --gprc-address "0.0.0.0:23670"
-      --node "tcp://{{ chain.name }}-{{ chain.network }}-validator:26659"
-      --overwrite 
-      --home /data
-    volumes:
-      - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/data"
-    user: "{{ node_uid }}:{{ node_gid }}"
-    detach: false
-    cleanup: true
-  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
-- name: Fix cosigner config permissions
-  file:
-    path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0700'
-    recurse: yes
-  with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
+# - name: Create priv_validator_state.json for each cosigner
+#   copy:
+#     content: |
+#       {
+#         "height": "0",
+#         "round": 0,
+#         "step": 0
+#       }
+#     dest: "{{ horcrux.state_dir }}/cosigner-{{ item }}/state/{{ chain.id }}_priv_validator_state.json"
+#     owner: "{{ node_user }}"
+#     group: "{{ node_group }}"
+#     mode: '0644'
+#   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
 - name: Create Docker Compose file
   template:
@@ -168,9 +156,11 @@
     dest: "{{ horcrux.state_dir }}/docker-compose.yml"
     owner: "{{ node_user }}"
     group: "{{ node_group }}"
-    mode: '0600'
 
 - name: Start Horcrux service
   community.docker.docker_compose_v2:
     project_src: "{{ horcrux.state_dir }}"
-    state: present 
+    state: present
+    recreate: "always"
+
+
