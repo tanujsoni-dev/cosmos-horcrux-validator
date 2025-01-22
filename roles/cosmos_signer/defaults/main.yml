@@ -1,3 +1,4 @@
+node_home: /home/signer
 
 # Horcrux signer configuration
 horcrux:
@@ -7,7 +8,6 @@ horcrux:
   grpc_listen_port_base: 3000  # Base port for validator connections
   threshold: 3
   total_cosigners: 5
-  # Validator nodes configuration
-  validator_nodes: ["tcp://sentry-1:1234", "tcp://sentry-2:1234"]  # List of validator sentry nodes to connect to (e.g. ["tcp://sentry-1:1234", "tcp://sentry-2:1234"])
+  # Sentry nodes configuration
+  sentry_nodes: []  # List of validator sentry nodes to connect to (e.g. ["tcp://sentry-1:1234", "tcp://sentry-2:1234"])
 
-node_home: /home/signer

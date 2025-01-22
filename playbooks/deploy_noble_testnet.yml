@@ -1,6 +1,6 @@
 ---
-- name: Setup Noble Testnet Node
-  hosts: validators
+- name: Deploy Noble Testnet Node
+  hosts: validator-3
   become: true
   collections:
     - community.docker

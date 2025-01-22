@@ -4,11 +4,11 @@
   hosts: noble-fullnode-testnet
   become: true
   roles:
-    - cosmos_common
-    - cosmos_snapshot
+    - role: ../roles/cosmos_common 
+    # - role: ../roles/cosmos_snapshot
 
 - name: Setup Signer Node
   hosts: signers
   become: true
   roles:
-    - cosmos_signer 
+    - role: ../roles/cosmos_signer 

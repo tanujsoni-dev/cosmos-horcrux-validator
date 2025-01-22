@@ -180,24 +180,14 @@
         "{{ dirs.chain_home }}/config/config.toml"
       notify: restart chain
 
-    - name: Configure p2p settings
-      command: >
-        sed -i 
-        -e 's/^bootstrap-peers *=.*$/bootstrap-peers = "{{ network.bootstrap_peers | default("") }}"/'
-        -e 's/^persistent-peers *=.*$/persistent-peers = "{{ network.persistent_peers | default("") }}"/'
-        "{{ dirs.chain_home }}/config/config.toml"
-      when: 
-        - network.bootstrap_peers is defined or network.persistent_peers is defined
-      notify: restart chain
-
 - name: Configure private validator settings
   block:
     - name: Set private validator listen address
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
         regexp: '^priv_validator_laddr *=.*$'
-        line: 'priv_validator_laddr = "{{ network.priv_validator_laddr | default("") }}"'
-      when: network.priv_validator_laddr is defined
+        line: 'priv_validator_laddr = "0.0.0.0:{{ network.priv_validator_listen_port }}"'
+      when: network.priv_validator_listen_port is defined
       notify: restart chain
 
     - name: Set private validator key file

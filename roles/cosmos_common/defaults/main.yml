@@ -1,7 +1,4 @@
-# Node user configuration (from inventory)
-node_user: "{{ os_users[0].name }}"  # Takes the first user from inventory
-node_group: "{{ os_users[0].group }}"  # Takes the first user's group from inventory
-node_home: "{{ os_users[0].home }}"   # Takes the first user's home
+node_home: "/home/validator"   # Takes the first user's home
 
 # Node identification
 node_moniker: "{{ inventory_hostname }}"
@@ -40,5 +37,5 @@ network:
   # RPC configuration
   rpc_laddr: "tcp://0.0.0.0:26657"  # Listen address for RPC server
   grpc_laddr: "tcp://0.0.0.0:26659"  # Listen address for gRPC server (empty disables it)
-  # Private validator configuration
-  priv_validator_laddr: "0.0.0.0:19901"  # Address for external validator connections (empty uses local key) 
+  # Private validator listen port configuration
+  priv_validator_listen_port: 2024  # listned port for external validator connections (empty uses local key) 
