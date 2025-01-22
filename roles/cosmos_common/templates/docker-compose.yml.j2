@@ -3,7 +3,7 @@ services:
   {{ chain.name }}-{{ chain.network }}:
     container_name: {{ chain.name }}-{{ chain.network }}
     image: {{ chain.image }}
-    user: "{{ node_uid }}:{{ node_gid }}"
+    user: "root"
     volumes:
       - {{ dirs.chain_home }}:/data
       - {{ dirs.snapshot }}:/snapshots
@@ -13,6 +13,4 @@ services:
     command: "start --home /data"
     environment:
       - MONIKER={{ node_moniker }}
-    ports:
-      {{ docker.ports | to_nice_yaml | indent(6) }}
     restart: unless-stopped 

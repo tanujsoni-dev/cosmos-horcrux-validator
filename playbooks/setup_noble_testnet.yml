@@ -1,6 +1,6 @@
 ---
 - name: Setup Noble Testnet Node
-  hosts: noble-fullnode-testnet
+  hosts: validators
   become: true
   collections:
     - community.docker

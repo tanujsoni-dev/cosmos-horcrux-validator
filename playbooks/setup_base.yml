@@ -1,0 +1,18 @@
+---
+- name: Setup Base System Configuration
+  hosts: all
+  become: true
+  roles:
+    - role: devsec.hardening.os_hardening
+      vars:
+        # Only enable user/group management
+        os_hardening_enabled: true
+        manage_users: true
+        manage_groups: true
+        sysctl_overwrite:
+          # Enable IPv4 traffic forwarding for Docker
+          net.ipv4.ip_forward: 1
+    - role: geerlingguy.docker
+      vars:
+        docker_install_compose_plugin: true
+        docker_users: "{{ os_users | map(attribute='name') | list }}"  # Add users to docker group

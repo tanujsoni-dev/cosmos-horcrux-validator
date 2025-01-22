@@ -1,8 +1,9 @@
+---  # Start with YAML document marker
 all:
   children:
-    noble-fullnode-testnet:
+    validators:
       hosts:
-        noble-fullnode-testnet:
+        validator-3:
           ansible_host: 162.55.34.89
           ansible_user: root
       vars:
@@ -12,20 +13,26 @@ all:
           image: ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4
           network: testnet
         network:
-          bootstrap_peers: "ade4d8bc8cbe014af6ebdf3cb7b1e9ad36f412c0@testnet-seeds.polkachu.com:21556"
-          persistent_peers: "1ccc0e799d4cfa0af1bcaab9a4ead0a875c03b38@95.217.120.205:21556,6e43f91fbc6ab984cb3241feeab37b33d222bc82@65.109.67.126:26656,41757bdd50f50c4b09cdbb3878c00a9958230292@3.83.246.23:30333,83fc164c170281783a72849d0c4fd2ee6aae6139@125.131.208.66:11002,e8fb6d9e3f0aa198f4afdbf9e3e3550dac71e718@83.171.248.177:10456,63e95eee5e07ba055cdaa00d8ab4f0c8f9339f10@3.127.145.33:26686,9a8b202153a0258b4ad0020948c10069f0bd1ce4@85.10.200.232:32276,f2f0dc25f7d041b41989de3de8f5606418affe8c@188.34.180.243:26656,efbc3c52ddb6433b0ad08882c77917886604dbf4@65.109.85.221:2100,c09a1fdd5ab168e87571782405d9b093fa463738@57.128.151.102:26656,f2067cc7a23a4b2525f5f98430797b1e5c92e3aa@35.183.110.236:26656,9ca847e57153e85b4586c1dd2fbaa1b684e31340@65.108.226.183:21556,7696016c35765feea704a9e9ccceede2c5fcc72c@52.200.104.210:26656,6cc1ae2000fb38c74b7d9060573b664c4be204be@37.27.58.174:26656,a6c01e4951a90a1a5f375eaf3a250c0ef63149c0@43.131.48.102:26656,1b00029a75200ab0329f17cdd4dc660ca7938d0b@34.73.235.223:26656,3ff836a6b2664083931689ce9aa955cd7b8c0baf@202.61.206.101:27358,20b4f9207cdc9d0310399f848f057621f7251846@222.106.187.13:52200,f02c073902c84c29e47bf32488df5652346fdf35@157.90.33.62:32656,55a9ae9020b6fbfe6d70b10b2bce59e4b3a13c24@88.198.8.79:2100,00bf305180527237697fa8d4bec652c6ebb1a6a9@162.55.245.144:2320,1604dafa5d10390df265b8be89e70953c57e8a07@54.87.173.234:30333,270a0aad7fa195c7c889551a64e985c4b2773517@94.130.32.41:59956,94290049835b51400badd1a36f0888c0784128fa@35.226.248.0:26656,4bb57f4075a485dfa3f7de6c08d1273790ff1d23@158.160.57.247:26656,637077d431f618181597706810a65c826524fd74@23.128.116.46:21556"
-          rpc_servers: "https://noble-testnet-rpc.polkachu.com:443"
+          bootstrap_peers: ade4d8bc8cbe014af6ebdf3cb7b1e9ad36f412c0@testnet-seeds.polkachu.com:21556
+          persistent_peers: "1ccc0e799d4cfa0af1bcaab9a4ead0a875c03b38@95.217.120.205:21556,6e43f91fbc6ab984cb3241feeab37b33d222bc82@65.109.67.126:26656,41757bdd50f50c4b09cdbb3878c00a9958230292@3.83.246.23:30333,637077d431f618181597706810a65c826524fd74@23.128.116.46:21556,e8fb6d9e3f0aa198f4afdbf9e3e3550dac71e718@83.171.248.177:10456,63e95eee5e07ba055cdaa00d8ab4f0c8f9339f10@3.127.145.33:26686,9a8b202153a0258b4ad0020948c10069f0bd1ce4@85.10.200.232:32276,f2f0dc25f7d041b41989de3de8f5606418affe8c@188.34.180.243:26656,4bb57f4075a485dfa3f7de6c08d1273790ff1d23@158.160.57.247:26656,c09a1fdd5ab168e87571782405d9b093fa463738@57.128.151.102:26656,f2067cc7a23a4b2525f5f98430797b1e5c92e3aa@35.183.110.236:26656,9ca847e57153e85b4586c1dd2fbaa1b684e31340@65.108.226.183:21556,7696016c35765feea704a9e9ccceede2c5fcc72c@52.200.104.210:26656,6cc1ae2000fb38c74b7d9060573b664c4be204be@37.27.58.174:26656,a6c01e4951a90a1a5f375eaf3a250c0ef63149c0@43.131.48.102:26656,1b00029a75200ab0329f17cdd4dc660ca7938d0b@34.73.235.223:26656,3ff836a6b2664083931689ce9aa955cd7b8c0baf@202.61.206.101:27358,068643a2525c3b1e26b89c1304e5affa8acf1a50@115.166.141.182:26656,20b4f9207cdc9d0310399f848f057621f7251846@222.106.187.13:52200,55a9ae9020b6fbfe6d70b10b2bce59e4b3a13c24@88.198.8.79:2100,00bf305180527237697fa8d4bec652c6ebb1a6a9@162.55.245.144:2320,1604dafa5d10390df265b8be89e70953c57e8a07@54.87.173.234:30333,270a0aad7fa195c7c889551a64e985c4b2773517@94.130.32.41:59956,94290049835b51400badd1a36f0888c0784128fa@35.226.248.0:26656,f02c073902c84c29e47bf32488df5652346fdf35@157.90.33.62:32656,83fc164c170281783a72849d0c4fd2ee6aae6139@125.131.208.66:11002,953d9d8d7764e465116211271e60a2def9b4c219@149.50.116.127:26656"
+          rpc_servers: https://noble-testnet-rpc.polkachu.com:443
         sources:
-          snapshot_url: "https://snapshots.polkachu.com/testnet-snapshots/noble/noble_21869078.tar.lz4"
-          genesis_url: "https://raw.githubusercontent.com/strangelove-ventures/noble-networks/main/testnet/grand-1/genesis.json"
-          addressbook_url: "https://snapshots.polkachu.com/testnet-addrbook/noble/addrbook.json"
-        node_user: validator
-        node_group: validator
-        node_home: /home/validator
-        node_uid: 1000
-        node_gid: 1000
-        cosmos:
-          min_gas_price: "0.025uusdc"  # Noble-specific gas price
+          snapshot_url: https://snapshots.polkachu.com/testnet-snapshots/noble/noble_22009501.tar.lz4
+          genesis_url: https://raw.githubusercontent.com/strangelove-ventures/noble-networks/main/testnet/grand-1/genesis.json
+          addressbook_url: https://snapshots.polkachu.com/testnet-addrbook/noble/addrbook.json
+        # Hardening configuration
+        ssh_allow_users:
+          - root
+          - validator
+        os_users:
+          - name: validator
+            group: validator
+            shell: /bin/bash
+            home: /home/validator
+            groups: [docker]
+        os_groups:
+          - name: validator
+          - name: docker
 
     signers:
       hosts:
@@ -39,11 +46,21 @@ all:
           network: testnet
         horcrux:
           image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
-          threshold: 3  # Minimum signers required
-          total_cosigners: 5  # Total number of cosigners
-          state_dir: /home/signer/horcrux  # Directory for storing cosigner data
-        node_user: signer
-        node_group: signer
-        node_home: /home/signer
-        node_uid: 1000
-        node_gid: 1000
+          threshold: 3
+          total_cosigners: 5
+          state_dir: /home/signer/horcrux
+          p2p_port: 2222
+          public_base_port: 3000
+        # Hardening configuration
+        ssh_allow_users:
+          - root
+          - signer
+        os_users:
+          - name: signer
+            group: signer
+            shell: /bin/bash
+            home: /home/signer
+            groups: [docker]
+        os_groups:
+          - name: signer
+          - name: docker

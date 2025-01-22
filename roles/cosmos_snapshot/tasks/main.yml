@@ -12,17 +12,6 @@
     services: ["{{ chain.name }}-{{ chain.network }}"]
   ignore_errors: yes
 
-- name: Prepare directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0750'
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-  loop:
-    - "{{ dirs.snapshot }}"
-    - "{{ dirs.chain_home }}/data"
-
 - name: Backup and reset
   block:
     - name: Backup validator state if exists
@@ -43,7 +32,7 @@
         state: started
         auto_remove: true
         entrypoint: "{{ chain_binary }}"
-        user: "{{ node_uid }}:{{ node_gid }}"
+        user: "root"
       register: reset_result
 
 - name: Download and extract snapshot
@@ -59,13 +48,11 @@
         --continue=true
         --human-readable=true
         "{{ sources.snapshot_url }}"
-      become_user: "{{ node_user }}"
 
     - name: Extract snapshot
       shell: |
         cd {{ dirs.chain_home }} && \
         lz4 -dc {{ dirs.snapshot }}/{{ sources.snapshot_url | basename }} | pv | tar xf -
-      become_user: "{{ node_user }}"
 
     - name: Verify databases
       stat:

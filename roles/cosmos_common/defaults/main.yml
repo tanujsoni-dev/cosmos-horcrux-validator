@@ -1,33 +1,34 @@
 ---
-# User configuration
-node_user: validator
-node_group: validator
-node_home: /home/validator
+# Node user configuration (from inventory)
+node_user: "{{ os_users[0].name }}"  # Takes the first user from inventory
+node_group: "{{ os_users[0].group }}"  # Takes the first user's group from inventory
+node_home: "{{ os_users[0].home }}"   # Takes the first user's home
+
+# Node identification
 node_moniker: "{{ inventory_hostname }}"
 
-# Common Cosmos configurations
-cosmos:
-  min_gas_price: "0.025uusdc"  # Default minimum gas price
-  pruning:
-    mode: "custom"          # default, nothing, everything, or custom
-    keep_recent: "100"      # number of recent heights to keep
-    keep_every: "0"         # every Nth block to keep
-    interval: "10"          # blocks to wait between pruning
-  indexer: "null"           # kv or null
-  min_retain_blocks: 100    # minimum block retention
-  state_sync:
-    enabled: true
-    trust_period: "168h"    # 7 days
-    chunk_request_timeout: "10s"
-    snapshot_interval: 2000  # blocks between trust height updates
-
-# Directory structure
+# Directory structure (all relative to node_home)
 dirs:
   root: "{{ node_home }}/chains"
   chain_home: "{{ node_home }}/chains/{{ chain.name }}_{{ chain.network }}"
   snapshot: "{{ node_home }}/snapshots"
   backup: "{{ node_home }}/backups"
 
-# Binary configuration
-chain_binary: "{{ chain.name }}d"  # Automatically append 'd' to chain name
-chain_binary_path: "/go/bin/{{ chain_binary }}"  # Full path to binary 
+# Chain binary (can be overridden)
+chain_binary: "{{ chain.binary | default(chain.name + 'd') }}"
+
+# Common Cosmos configurations
+cosmos:
+  min_gas_price: "0.025uusdc"
+  pruning:
+    mode: "custom"
+    keep_recent: "100"
+    keep_every: "0"
+    interval: "10"
+  indexer: "null"
+  min_retain_blocks: 100
+  state_sync:
+    enabled: true
+    trust_period: "168h"
+    chunk_request_timeout: "10s"
+    snapshot_interval: 2000 

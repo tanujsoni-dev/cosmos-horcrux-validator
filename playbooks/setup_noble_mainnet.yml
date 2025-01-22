@@ -1,9 +1,0 @@
----
-- name: Setup Noble Mainnet Node
-  hosts: noble-fullnode-mainnet
-  become: true
-  collections:
-    - community.docker
-
-  roles:
-    - role: ../roles/cosmos_common 

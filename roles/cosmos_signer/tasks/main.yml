@@ -1,23 +1,4 @@
 ---
-- name: Create signer group
-  group:
-    name: "{{ node_group }}"
-    state: present
-
-- name: Create signer user
-  user:
-    name: "{{ node_user }}"
-    group: "{{ node_group }}"
-    shell: /bin/bash
-    create_home: yes
-    home: "{{ node_home }}"
-
-- name: Add signer user to Docker group
-  user:
-    name: "{{ node_user }}"
-    groups: docker
-    append: yes
-
 - name: Create base directories
   file:
     path: "{{ item }}"

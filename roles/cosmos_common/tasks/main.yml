@@ -7,25 +7,6 @@
     state: present
     update_cache: yes
 
-- name: Create validator group
-  group:
-    name: "{{ node_group }}"
-    state: present
-
-- name: Create validator user
-  user:
-    name: "{{ node_user }}"
-    group: "{{ node_group }}"
-    shell: /bin/bash
-    create_home: yes
-    home: "{{ node_home }}"
-
-- name: Add validator user to docker group
-  user:
-    name: "{{ node_user }}"
-    groups: docker
-    append: yes
-
 - name: Create base directories
   file:
     path: "{{ item }}"
@@ -47,7 +28,7 @@
     state: started
     auto_remove: true
     entrypoint: "{{ chain_binary }}"
-    user: "{{ node_uid }}:{{ node_gid }}"
+    user: "root"
   when: >
     not (dirs.chain_home + '/config') is directory or
     not (dirs.chain_home + '/data') is directory

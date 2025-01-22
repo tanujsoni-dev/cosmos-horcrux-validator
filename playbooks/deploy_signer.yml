@@ -1,6 +1,6 @@
 ---
 - name: Deploy Horcrux Signer
-  hosts: signers
+  hosts: signer-3
   become: true
   collections:
     - community.docker

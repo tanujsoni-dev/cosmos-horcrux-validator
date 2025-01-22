@@ -1,0 +1,14 @@
+---
+# Main playbook that depends on users being created
+- name: Setup Validator Node
+  hosts: noble-fullnode-testnet
+  become: true
+  roles:
+    - cosmos_common
+    - cosmos_snapshot
+
+- name: Setup Signer Node
+  hosts: signers
+  become: true
+  roles:
+    - cosmos_signer 
