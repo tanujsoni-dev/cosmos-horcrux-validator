@@ -37,8 +37,25 @@
     url: "{{ sources.genesis_url }}"
     dest: "{{ dirs.chain_home }}/config/genesis.json"
 
-- name: Check existing addressbook
+- name: Configure p2p settings
   block:
+    - name: Set p2p listen address
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[p2p\](\n[^\[]*?)^laddr *=.*$'
+        line: '[p2p]\1laddr = "{{ network.p2p_laddr | default("tcp://0.0.0.0:26656") }}"'
+        backrefs: yes
+      notify: restart chain
+
+    - name: Set p2p peer lists
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: "^{{ item.key }} ="
+        line: '{{ item.key }} = "{{ item.value }}"'
+      loop:
+        - { key: "persistent_peers", value:  }
+      notify: restart chain
+
     - name: Check if addressbook exists
       stat:
         path: "{{ dirs.chain_home }}/config/addrbook.json"
@@ -123,6 +140,22 @@
 
 - name: Configure config.toml settings
   block:
+    - name: Set RPC listen address
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[rpc\](\n[^\[]*?)^laddr *=.*$'
+        line: '[rpc]\1laddr = "{{ network.rpc_laddr | default("tcp://0.0.0.0:26657") }}"'
+        backrefs: yes
+      notify: restart chain
+
+    - name: Set gRPC listen address
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[rpc\](\n[^\[]*?)^grpc_laddr *=.*$'
+        line: '[rpc]\1grpc_laddr = "{{ network.grpc_laddr | default("") }}"'
+        backrefs: yes
+      notify: restart chain
+
     - name: Ensure indexer settings exist
       shell: |
         if ! grep -q "^indexer =" "{{ dirs.chain_home }}/config/config.toml"; then
@@ -140,14 +173,30 @@
         "{{ dirs.chain_home }}/config/config.toml"
       notify: restart chain
 
-    - name: Configure p2p settings
-      command: >
-        sed -i 
-        -e 's/^bootstrap-peers *=.*$/bootstrap-peers = "{{ network.bootstrap_peers | default("") }}"/'
-        -e 's/^persistent-peers *=.*$/persistent-peers = "{{ network.persistent_peers | default("") }}"/'
-        "{{ dirs.chain_home }}/config/config.toml"
-      when: 
-        - network.bootstrap_peers is defined or network.persistent_peers is defined
+- name: Configure private validator settings
+  block:
+    - name: Set private validator listen address
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_laddr *=.*$'
+        line: '[priv_validator]\1priv_validator_laddr = "{{ network.priv_validator_laddr | default("") }}"'
+        backrefs: yes
+      notify: restart chain
+
+    - name: Configure private validator key file
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_key_file *=.*$'
+        line: '[priv_validator]\1priv_validator_key_file = "{{ "" if network.priv_validator_laddr else "config/priv_validator_key.json" }}"'
+        backrefs: yes
+      notify: restart chain
+
+    - name: Configure private validator state file
+      lineinfile:
+        path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_state_file *=.*$'
+        line: '[priv_validator]\1priv_validator_state_file = "{{ "" if network.priv_validator_laddr else "data/priv_validator_state.json" }}"'
+        backrefs: yes
       notify: restart chain
 
 - name: Configure state sync
@@ -170,7 +219,7 @@
       command: >
         sed -i.bak
         -e 's/^enable *=.*$/enable = true/'
-        -e 's|^rpc_servers *=.*$|rpc_servers = "{{ network.rpc_servers }},{{ network.rpc_servers }}"|'
+        -e 's|^rpc_servers *=.*$|rpc_servers = "{{ network.rpc_servers }}"|'
         -e 's|^trust_height *=.*$|trust_height = {{ latest_block.json.result.block.header.height | int - 2000 }}|'
         -e 's|^trust_hash *=.*$|trust_hash = "{{ trust_block.json.result.block_id.hash }}"|'
         "{{ dirs.chain_home }}/config/config.toml"

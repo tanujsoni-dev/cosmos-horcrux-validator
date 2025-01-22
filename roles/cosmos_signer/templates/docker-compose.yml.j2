@@ -10,10 +10,4 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:{{ horcrux.public_base_port + i - 1 }}:{{ horcrux.p2p_port }}"
-    networks:
-      - horcrux
 {% endfor %}
-
-networks:
-  horcrux:
-    name: horcrux 
