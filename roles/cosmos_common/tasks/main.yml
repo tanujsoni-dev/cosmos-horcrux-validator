@@ -190,15 +190,13 @@
       when: network.priv_validator_listen_port is defined
       notify: restart chain
 
-    - name: Set private validator key file
+    - name: Unset private validator key file
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
         regexp: '^priv_validator_key_file *=.*$'
-        line: 'priv_validator_key_file = "config/priv_validator_key.json"'
+        line: 'priv_validator_key_file = ""'
         regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_key_file *=.*$'
         backrefs: yes
-
-      # when: network.priv_validator_laddr is not defined
       notify: restart chain
 
     - name: Set private validator state file
