@@ -1,3 +1,0 @@
-# Remote signer configuration
-priv_validator_laddr = ""  # Empty to use multiple signers
-priv_validator_signer_addrs = "{% for signer_id in range(1, horcrux.total_cosigners + 1) %}tcp://{{ hostvars[groups['signers'][0]].ansible_host }}:{{ horcrux.public_port + signer_id - 1 }}{% if not loop.last %},{% endif %}{% endfor %}" 

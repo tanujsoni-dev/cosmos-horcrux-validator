@@ -28,12 +28,6 @@ dirs:
   snapshot: "{{ node_home }}/snapshots"
   backup: "{{ node_home }}/backups"
 
-# Docker configuration
-docker:
-  ports:
-    - "26656:26656"
-    - "26657:26657"
-
 # Binary configuration
 chain_binary: "{{ chain.name }}d"  # Automatically append 'd' to chain name
 chain_binary_path: "/go/bin/{{ chain_binary }}"  # Full path to binary 

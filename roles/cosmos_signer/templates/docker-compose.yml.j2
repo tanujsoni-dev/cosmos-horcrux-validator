@@ -9,7 +9,7 @@ services:
     user: "root"
     restart: unless-stopped
     ports:
-      - "{{ horcrux.base_port + i - 1 }}:{{ horcrux.base_port }}"
+      - "0.0.0.0:{{ horcrux.base_port + i - 1 }}:{{ horcrux.base_port }}"
     networks:
       - horcrux
 {% endfor %}

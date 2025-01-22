@@ -1,9 +1,0 @@
----
-- name: View Node Logs
-  hosts: "{{ target_group | default('noble-fullnode-testnet') }}"
-  become: true
-  tasks:
-    - name: View docker compose logs
-      command: "docker compose -f {{ node_home }}/docker-compose.yml logs -f"
-      async: 31536000  # Run for 1 year
-      poll: 0  # Don't wait for completion 
