@@ -110,9 +110,6 @@
         "step": 0
       }
     dest: "{{ horcrux.state_dir }}/cosigner-{{ item }}/state/{{ chain.id }}_priv_validator_state.json"
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
-    mode: '0644'
   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
 - name: Create Docker Compose file
@@ -124,4 +121,3 @@
   community.docker.docker_compose_v2:
     project_src: "{{ horcrux.state_dir }}"
     state: present
-    recreate: "always"

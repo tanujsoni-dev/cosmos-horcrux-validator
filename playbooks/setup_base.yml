@@ -12,6 +12,14 @@
         sysctl_overwrite:
           # Enable IPv4 traffic forwarding for Docker
           net.ipv4.ip_forward: 1
+
+        # SSH Hardening
+        ssh_permit_root_login: "without-password"
+        ssh_allow_users: ["root"]
+        ssh_client_password_login: false
+        ssh_server_password_login: false
+        ssh_use_pam: true
+
     - role: geerlingguy.docker
       vars:
         docker_install_compose_plugin: true

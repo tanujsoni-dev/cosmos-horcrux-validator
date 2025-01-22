@@ -1,9 +1,7 @@
 ---
 - name: Install required packages
   apt:
-    name: 
-      - jq
-      - lz4
+    name: [jq, lz4]
     state: present
     update_cache: yes
 
@@ -11,13 +9,18 @@
   file:
     path: "{{ item }}"
     state: directory
-    mode: '0750'
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
   with_items:
     - "{{ dirs.root }}"
     - "{{ dirs.chain_home }}"
-# Let the init command create chain_home and its structure
+
+- name: Check if chain is initialized
+  stat:
+    path: "{{ item }}"
+  register: chain_dirs
+  with_items:
+    - "{{ dirs.chain_home }}/config"
+    - "{{ dirs.chain_home }}/data"
+
 - name: Initialize node if not exists
   docker_container:
     name: "init-{{ chain.name }}-{{ chain.network }}"
@@ -25,21 +28,14 @@
     command: "init {{ node_moniker }} --chain-id {{ chain.id }} --home /data"
     volumes:
       - "{{ dirs.chain_home }}:/data"
-    state: started
-    auto_remove: true
+    cleanup: true
     entrypoint: "{{ chain_binary }}"
-    user: "root"
-  when: >
-    not (dirs.chain_home + '/config') is directory or
-    not (dirs.chain_home + '/data') is directory
+  when: not chain_dirs.results[0].stat.exists and not chain_dirs.results[1].stat.exists
 
 - name: Download genesis file
   get_url:
     url: "{{ sources.genesis_url }}"
     dest: "{{ dirs.chain_home }}/config/genesis.json"
-    mode: '0640'
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
 
 - name: Check existing addressbook
   block:
@@ -63,9 +59,6 @@
       get_url:
         url: "{{ sources.addressbook_url }}"
         dest: "{{ dirs.chain_home }}/config/addrbook.json"
-        mode: '0640'
-        owner: "{{ node_user }}"
-        group: "{{ node_group }}"
         force: yes
       when: >
         sources.addressbook_url is defined and (
@@ -189,9 +182,6 @@
   template:
     src: docker-compose.yml.j2
     dest: "{{ node_home }}/docker-compose.yml"
-    mode: '0640'
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
 
 - name: Start node
   community.docker.docker_compose_v2:
