@@ -48,7 +48,7 @@ all:
           image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
           threshold: 3
           total_cosigners: 5
-          state_dir: /home/signer/horcrux
+          state_dir: /home/signer
           p2p_port: 2222
           public_base_port: 3000
         # Hardening configuration

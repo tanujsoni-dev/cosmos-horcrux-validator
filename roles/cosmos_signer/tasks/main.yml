@@ -3,8 +3,6 @@
   file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
   with_items:
     - "{{ horcrux.state_dir }}"
 
@@ -12,8 +10,6 @@
   file:
     path: "{{ horcrux.state_dir }}/cosigner-{{ item }}"
     state: directory
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 
 - name: Check if priv_validator_key.json exists
@@ -123,8 +119,6 @@
   template:
     src: docker-compose.yml.j2
     dest: "{{ horcrux.state_dir }}/docker-compose.yml"
-    owner: "{{ node_user }}"
-    group: "{{ node_group }}"
 
 - name: Start Horcrux service
   community.docker.docker_compose_v2:

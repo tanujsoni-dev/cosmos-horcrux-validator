@@ -1,20 +1,12 @@
----
-# Node user configuration (from inventory)
-node_user: "{{ os_users[0].name }}"  # Takes the first user from inventory
-node_group: "{{ os_users[0].group }}"  # Takes the first user's group from inventory
-node_home: "{{ os_users[0].home }}"   # Takes the first user's home
+
 # Horcrux signer configuration
 horcrux:
   image: "ghcr.io/strangelove-ventures/horcrux:v3.3.1"
-  state_dir: "/home/{{ node_user }}/horcrux"
+  state_dir: "/home/signer"
   p2p_port: 2222  # Base port for Raft consensus
   public_base_port: 3000 # Base port for validator connections
   threshold: 3
   total_cosigners: 5
 
-# Node user and group defaults if not provided
-node_user: signer
-node_group: signer
+
 node_home: /home/signer
-node_uid: 1000
-node_gid: 1000 
