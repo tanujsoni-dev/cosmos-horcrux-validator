@@ -4,9 +4,10 @@ horcrux:
   image: "ghcr.io/strangelove-ventures/horcrux:v3.3.1"
   state_dir: "/home/signer"
   p2p_port: 2222  # Base port for Raft consensus
-  public_base_port: 3000 # Base port for validator connections
+  grpc_listen_port_base: 3000  # Base port for validator connections
   threshold: 3
   total_cosigners: 5
-
+  # Validator nodes configuration
+  validator_nodes: ["tcp://sentry-1:1234", "tcp://sentry-2:1234"]  # List of validator sentry nodes to connect to (e.g. ["tcp://sentry-1:1234", "tcp://sentry-2:1234"])
 
 node_home: /home/signer

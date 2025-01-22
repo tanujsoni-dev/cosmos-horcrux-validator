@@ -9,5 +9,5 @@ services:
     user: "root"
     restart: unless-stopped
     ports:
-      - "0.0.0.0:{{ horcrux.public_base_port + i - 1 }}:{{ horcrux.p2p_port }}"
+      - "0.0.0.0:{{ horcrux.grpc_listen_port_base + i - 1 }}:{{ horcrux.grpc_listen_port_base }}"
 {% endfor %}

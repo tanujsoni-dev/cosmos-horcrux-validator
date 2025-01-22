@@ -41,4 +41,4 @@ network:
   rpc_laddr: "tcp://0.0.0.0:26657"  # Listen address for RPC server
   grpc_laddr: "tcp://0.0.0.0:26659"  # Listen address for gRPC server (empty disables it)
   # Private validator configuration
-  priv_validator_laddr: ""  # Address for external validator connections (empty uses local key) 
+  priv_validator_laddr: "0.0.0.0:19901"  # Address for external validator connections (empty uses local key) 

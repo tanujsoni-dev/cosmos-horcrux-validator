@@ -89,15 +89,16 @@
       {% for i in range(1, horcrux.total_cosigners + 1) %}
       --cosigner "tcp://{{ chain.name }}-{{ chain.network }}-cosigner-{{ i }}:{{ horcrux.p2p_port }}"
       {% endfor %}
-      --threshold {{ horcrux.threshold }}
+      --node tcp://162.55.34.89:19901
+      --debug-addr 0.0.0.0:9090
       --grpc-timeout 1500ms
       --raft-timeout 1500ms
+      --threshold {{ horcrux.threshold }}
       --overwrite 
       --home /data
     volumes:
       - "{{ horcrux.state_dir }}/cosigner-{{ item }}:/data:rw"
     user: "root"
-    detach: false
     cleanup: true
   with_sequence: start=1 end="{{ horcrux.total_cosigners }}"
 

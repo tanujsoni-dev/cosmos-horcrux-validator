@@ -12,25 +12,34 @@
   with_items:
     - "{{ dirs.root }}"
     - "{{ dirs.chain_home }}"
+    - "{{ dirs.chain_home }}/config"
+    - "{{ dirs.chain_home }}/data"
 
 - name: Check if chain is initialized
   stat:
     path: "{{ item }}"
-  register: chain_dirs
+  register: chain_files
   with_items:
-    - "{{ dirs.chain_home }}/config"
-    - "{{ dirs.chain_home }}/data"
+    - "{{ dirs.chain_home }}/config/genesis.json"
+    - "{{ dirs.chain_home }}/config/config.toml"
+    - "{{ dirs.chain_home }}/config/app.toml"
+    - "{{ dirs.chain_home }}/data/blockstore.db"
+    - "{{ dirs.chain_home }}/data/state.db"
+    - "{{ dirs.chain_home }}/data/application.db"
 
 - name: Initialize node if not exists
   docker_container:
     name: "init-{{ chain.name }}-{{ chain.network }}"
     image: "{{ chain.image }}"
+    entrypoint: "{{ chain_binary }}"
     command: "init {{ node_moniker }} --chain-id {{ chain.id }} --home /data"
     volumes:
       - "{{ dirs.chain_home }}:/data"
+    user: "root"
+    detach: false
     cleanup: true
-    entrypoint: "{{ chain_binary }}"
-  when: not chain_dirs.results[0].stat.exists and not chain_dirs.results[1].stat.exists
+  when: not chain_files.results | map(attribute='stat.exists') | select('true') | list
+
 
 - name: Download genesis file
   get_url:
@@ -50,10 +59,8 @@
     - name: Set p2p peer lists
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
-        regexp: "^{{ item.key }} ="
-        line: '{{ item.key }} = "{{ item.value }}"'
-      loop:
-        - { key: "persistent_peers", value:  }
+        regexp: "^persistent_peers ="
+        line: 'persistent_peers = "{{ network.persistent_peers | default("") }}"'
       notify: restart chain
 
     - name: Check if addressbook exists
@@ -173,30 +180,43 @@
         "{{ dirs.chain_home }}/config/config.toml"
       notify: restart chain
 
+    - name: Configure p2p settings
+      command: >
+        sed -i 
+        -e 's/^bootstrap-peers *=.*$/bootstrap-peers = "{{ network.bootstrap_peers | default("") }}"/'
+        -e 's/^persistent-peers *=.*$/persistent-peers = "{{ network.persistent_peers | default("") }}"/'
+        "{{ dirs.chain_home }}/config/config.toml"
+      when: 
+        - network.bootstrap_peers is defined or network.persistent_peers is defined
+      notify: restart chain
+
 - name: Configure private validator settings
   block:
     - name: Set private validator listen address
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
-        regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_laddr *=.*$'
-        line: '[priv_validator]\1priv_validator_laddr = "{{ network.priv_validator_laddr | default("") }}"'
-        backrefs: yes
+        regexp: '^priv_validator_laddr *=.*$'
+        line: 'priv_validator_laddr = "{{ network.priv_validator_laddr | default("") }}"'
+      when: network.priv_validator_laddr is defined
       notify: restart chain
 
-    - name: Configure private validator key file
+    - name: Set private validator key file
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
+        regexp: '^priv_validator_key_file *=.*$'
+        line: 'priv_validator_key_file = "config/priv_validator_key.json"'
         regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_key_file *=.*$'
-        line: '[priv_validator]\1priv_validator_key_file = "{{ "" if network.priv_validator_laddr else "config/priv_validator_key.json" }}"'
         backrefs: yes
+
+      # when: network.priv_validator_laddr is not defined
       notify: restart chain
 
-    - name: Configure private validator state file
+    - name: Set private validator state file
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
-        regexp: '^\[priv_validator\](\n[^\[]*?)^priv_validator_state_file *=.*$'
-        line: '[priv_validator]\1priv_validator_state_file = "{{ "" if network.priv_validator_laddr else "data/priv_validator_state.json" }}"'
-        backrefs: yes
+        regexp: '^priv_validator_state_file *=.*$'
+        line: 'priv_validator_state_file = "data/priv_validator_state.json"'
+      when: network.priv_validator_laddr is not defined
       notify: restart chain
 
 - name: Configure state sync
