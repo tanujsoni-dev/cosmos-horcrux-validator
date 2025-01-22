@@ -1,20 +1,10 @@
 ---
 # Horcrux signer configuration
 horcrux:
-  version: "v3.3.1"
   image: "ghcr.io/strangelove-ventures/horcrux:v3.3.1"
   state_dir: "/home/{{ node_user }}/horcrux"
-  private_peer_port: 2222  # Base port for Raft consensus
-  public_port: 3000       # Base port for validator connections
-
-# Raft cluster configuration
-raft:
-  cluster_name: "{{ chain.name }}-{{ chain.network }}"
-
-# Default directories
-dirs:
-  root: "{{ node_home }}/chains"
-  chain_home: "{{ node_home }}/chains/{{ chain.name }}_{{ chain.network }}"
+  p2p_port: 2222  # Base port for Raft consensus
+  public_base_port: 3000 # Base port for validator connections
 
 # Node user and group defaults if not provided
 node_user: signer

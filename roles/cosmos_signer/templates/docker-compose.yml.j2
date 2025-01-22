@@ -1,7 +1,7 @@
 services:
 {% for i in range(1, horcrux.total_cosigners + 1) %}
   {{ chain.name }}-{{ chain.network }}-cosigner-{{ i }}:
-    image: ghcr.io/strangelove-ventures/horcrux:v3.3.1
+    image: {{ horcrux.image }}
     entrypoint: horcrux
     command: start --home /root/.horcrux
     volumes:
@@ -9,7 +9,7 @@ services:
     user: "root"
     restart: unless-stopped
     ports:
-      - "0.0.0.0:{{ horcrux.base_port + i - 1 }}:{{ horcrux.base_port }}"
+      - "0.0.0.0:{{ horcrux.public_base_port + i - 1 }}:{{ horcrux.p2p_port }}"
     networks:
       - horcrux
 {% endfor %}
