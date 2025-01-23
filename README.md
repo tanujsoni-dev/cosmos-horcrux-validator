@@ -4,8 +4,11 @@ Ansible-based deployment for Cosmos validator with distributed Horcrux signing i
 
 > ⚠️ **IMPORTANT: Development Status**
 > - This setup is currently in testing phase and NOT production-ready
-> - UFW (firewall) is intentionally disabled during development
-> - Proper firewall rules will be implemented after Vagrant-based testing environment is complete
+> - Several security features are disabled or not yet implemented:
+>   - UFW (firewall) is disabled and configs for it are also not present
+>   - Sentry nodes are not implemented
+>   - Network segmentation is not configured
+>   - Monitoring and alerts are not set up
 > - See [TODO.md](TODO.md) for all pending security and infrastructure improvements
 > - Do not use this configuration in production without enabling appropriate security measures
 
