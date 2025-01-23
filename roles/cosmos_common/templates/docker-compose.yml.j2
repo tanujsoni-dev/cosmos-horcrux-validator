@@ -15,4 +15,5 @@ services:
       - MONIKER={{ node_moniker }}
     ports:
       - "0.0.0.0:{{ network.priv_validator_listen_port }}:{{ network.priv_validator_listen_port }}"  # priv_validator_laddr
+      - "0.0.0.0:{{ network.rpc_laddr_port }}:{{ network.rpc_laddr_port }}"  # rpc_laddr
     restart: unless-stopped 

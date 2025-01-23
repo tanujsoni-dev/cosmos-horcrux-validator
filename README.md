@@ -115,9 +115,8 @@ docker compose exec noble-testnet-cosigner-1 horcrux address grand-1 noble
 #   "ValConsPubAddress": "noblevalconspub1zcjduepqprys3etjr3lf4n4xp4d2e450g84ur0gck00wkq8qltt82ulg8mqsgpagey"
 # }
 
-# Convert HexAddress to Bech32
-# Using the Noble Docker image:
-docker run --rm ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled debug addr 1E8B17F49F36526CD6CEA3122EFB739F437BA735
+# Convert HexAddress to operator address (can be run anywhere with Docker):
+docker run --rm ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled debug addr 1E8B17F49F36526CD6CEA3122EFB739F437BA735 --prefix noble
 
 # Example output:
 # Address: [30 139 23 244 159 54 82 108 214 206 163 18 46 251 115 159 67 123 167 53]
@@ -125,37 +124,80 @@ docker run --rm ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled
 # Bech32 Acc: noble1r6930aylxefxe4kw5vfza7mnnaphhfe4cs93dk
 # Bech32 Val: noblevaloper1r6930aylxefxe4kw5vfza7mnnaphhfe4kqfpmg
 # Bech32 Con: noblevalcons1r6930aylxefxe4kw5vfza7mnnaphhfe4zn6ahf
-
 ```
-Save both the validator address (starts with 'noblevaloper') and complete pubkey JSON for staking.
 
-2. **Validator Startup**
+2. **Create Validator**
+
+First, create a new wallet and get testnet tokens:
 ```bash
-# Monitor validator logs
-docker compose logs -f
+# Create new wallet
+docker run --rm -it ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled keys add testnet-wallet
+
+# Example output:
+# - address: noble1amsmcwzeaglledv738qkvyy4hzc08y9zy80nhy
+#   name: testnet-wallet
+#   pubkey: '{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AzRWfR8po0y0OUXEG16KfL7PXaseEZoNifbJn1YzeUOH"}'
+#   type: local
+
+Get testnet tokens from faucet:
+Visit https://faucet.circle.com/ and request tokens for your address
+
+# Check balance
+```bash
+docker run --rm ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled query bank balances noble1amsmcwzeaglledv738qkvyy4hzc08y9zy80nhy
 ```
-Note: Validator may show "unable to get pubkey from private validator" initially. This is normal:
-- Validator restarts automatically
+
+Create validator configuration file (validator.json):
+```json
+{
+    "pubkey": {"@type":"/cosmos.crypto.ed25519.PubKey","key":"CMkI5XIcfprOpg1arNaPQevBvRiz3usA4PrWdXPoPsE="},
+    "amount": "100000uusdc",
+    "moniker": "tsvalidator",
+    "identity": "optional identity signature (ex. UPort or Keybase)",
+    "website": "validator website",
+    "security": "validator's (optional) security contact email",
+    "details": "Validator description",
+    "commission-rate": "0.1",
+    "commission-max-rate": "0.2",
+    "commission-max-change-rate": "0.01",
+    "min-self-delegation": "1"
+}
+```
+
+Create validator:
+```bash
+nobled tx staking create-validator /validator.json --from testnet-wallet --chain-id grand-1 --fees 20000uusdc
+```
+
+3. **Monitor Status**
+
+Check validator logs:
+```bash
+# From validator node
+docker compose logs -f
+
+# From signer node
+docker compose logs -f noble-testnet-cosigner-1
+```
+
+Note: Initially, the validator may show "unable to get pubkey from private validator". This is normal:
+- Validator will restart automatically
 - Waits for cosigner connection
 - Starts syncing once any cosigner connects
 - Becomes ready for staking after sync
 
-3. **Staking Setup**
-- Use external wallet with sufficient funds
-- Stake tokens to validator address from step 1
-- Command example:
-```bash
-nobled tx staking create-validator \
-  --amount=1000000utoken \
-  --pubkey=<PUBKEY_FROM_HORCRUX> \
-  --moniker="validator-name" \
-  --chain-id=grand-1 \
-  --from=<WALLET_ADDRESS> \
-  --commission-rate="0.10" \
-  --commission-max-rate="0.20" \
-  --commission-max-change-rate="0.01" \
-  --min-self-delegation="1"
-```
+## Troubleshooting
+
+1. **Connection Issues**
+- Check signer IP addresses in configuration
+- Verify port 2024 is accessible between validator and signers
+- Check network connectivity between nodes
+
+2. **Signing Issues**
+- Check Horcrux logs for errors
+- Verify 3/5 threshold is maintained
+- Check network connectivity between cosigners
+
 ## Monitoring
 ```bash
 # Validator status (from validator node)
@@ -173,69 +215,3 @@ docker compose logs -f noble-testnet-cosigner-1
 # Firewall rules
 sudo ufw status
 ```
-
-## Troubleshooting
-1. **Connection Issues**
-   - UFW rules
-   - Signer IP verification
-   - Port 2024 accessibility
-
-2. **Signing Issues**
-   - Horcrux logs
-   - Threshold verification
-   - Network connectivity
-
-
-docker compose logs -f
-```
-Note: Validator may show "unable to get pubkey from private validator" initially. This is normal:
-- Validator restarts automatically
-- Waits for cosigner connection
-- Starts syncing once any cosigner connects
-- Becomes ready for staking after sync
-
-3. **Staking Setup**
-- Use external wallet with sufficient funds
-- Stake tokens to validator address from step 1
-- Command example:
-```bash
-nobled tx staking create-validator \
-  --amount=1000000utoken \
-  --pubkey=<PUBKEY_FROM_HORCRUX> \
-  --moniker="validator-name" \
-  --chain-id=grand-1 \
-  --from=<WALLET_ADDRESS> \
-  --commission-rate="0.10" \
-  --commission-max-rate="0.20" \
-  --commission-max-change-rate="0.01" \
-  --min-self-delegation="1"
-```
-## Monitoring
-```bash
-# Validator status (from validator node)
-cd /home/validator
-docker compose logs -f
-
-# Signer status (from signer node)
-cd /home/signer
-docker compose logs -f
-
-# Monitor specific signer
-cd /home/signer
-docker compose logs -f noble-testnet-cosigner-1
-
-# Firewall rules
-sudo ufw status
-```
-
-## Troubleshooting
-1. **Connection Issues**
-   - UFW rules
-   - Signer IP verification
-   - Port 2024 accessibility
-
-2. **Signing Issues**
-   - Horcrux logs
-   - Threshold verification
-   - Network connectivity
-

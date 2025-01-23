@@ -163,7 +163,7 @@
       lineinfile:
         path: "{{ dirs.chain_home }}/config/config.toml"
         regexp: '^\[rpc\](\n[^\[]*?)^laddr *=.*$'
-        line: '[rpc]\1laddr = "{{ network.rpc_laddr | default("tcp://0.0.0.0:26657") }}"'
+        line: '[rpc]\1laddr = "tcp://0.0.0.0{{ network.rpc_laddr_port | default(":26657") }}"'
         backrefs: yes
       notify: restart chain
 
