@@ -1,0 +1,4 @@
+ ## UFW
+
+# - UFW is configured to allow only signer IPs to access the validator's private validator port (2053).
+# TODO: unimplemented 
