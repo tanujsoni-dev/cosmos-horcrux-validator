@@ -6,9 +6,9 @@
 - [ ] Vector Configuration for Metrics Collection:
   - [ ] Configure Vector to collect and forward:
     - Block signing metrics from validator
-    - Validator uptime metrics via API endpoints
-    - Signer quorum status (3/5 threshold)
-    - Chain sync metrics
+    - Chain-specific metrics (voting power, missed blocks, double-sign evidence)
+    - Consensus metrics (rounds per block, block time)
+    - P2P metrics (peers count, bandwidth usage)
     - System metrics (CPU, memory, disk, network)
     - Container metrics from Docker
     - Connection status between validator and signers
@@ -17,40 +17,86 @@
 
 - [ ] Metrics Storage and Visualization:
   - [ ] Deploy VictoriaMetrics for metrics storage:
-    - Configure retention policies
+    - Configure retention policies (30d for high-res, 1y for aggregated)
     - Set up data deduplication
     - Implement backup procedures
   - [ ] Set up Grafana dashboards:
-    - Validator performance dashboard
-    - Signer health dashboard
-    - System resources dashboard
-    - Network connectivity dashboard
+    - Validator performance dashboard (blocks, votes, latency)
+    - Signer health dashboard (quorum status, signing latency)
+    - System resources dashboard (with resource saturation alerts)
+    - Network connectivity dashboard (peer health, bandwidth)
+    - Chain-specific metrics dashboard
 
 - [ ] Log Collection and Analysis:
-  - [ ] Configure Vector log collection:
-    - Validator logs
-    - Signer logs
-    - System logs
-    - Security logs
+  - [ ] Configure Vector log collection with structured logging:
+    - Validator logs (consensus events, block production)
+    - Signer logs (signing operations, errors)
+    - System logs (resource usage, security events)
+    - Security logs (auth attempts, sudo usage)
   - [ ] Set up VictoriaLogs:
-    - Configure log retention
-    - Set up log parsing rules
-    - Implement log rotation
+    - Configure log retention (90 days minimum)
+    - Set up log parsing rules for key events
+    - Implement log rotation and compression
 
 - [ ] Alert Strategy Implementation:
   - [ ] Configure alerting rules in VictoriaMetrics:
-    - Critical: Missed blocks, quorum loss, chain halt
-    - High: Resource exhaustion, sync delays
-    - Medium: Performance degradation
-    - Low: Informational metrics
+    - Critical: 
+      - Missed blocks > 2 in 100 blocks
+      - Quorum loss or signer unavailability
+      - Chain halt or consensus failure
+      - Double-signing attempts
+    - High:
+      - Resource saturation > 80%
+      - Sync delays > 10 blocks
+      - Network peer count < minimum
+    - Medium:
+      - Performance degradation (high latency)
+      - Disk space trending towards limits
+    - Low:
+      - Informational metrics and trends
   - [ ] Set up alert routing through Alertmanager:
-    - Define notification channels
-    - Configure alert grouping
-    - Set up escalation policies
-  - [ ] Create alert documentation:
-    - Alert severity definitions
-    - Response procedures
-    - Escalation paths
+    - Define notification channels (Grafana OnCall, Slack)
+    - Configure alert grouping and deduplication
+    - Set up escalation policies with acknowledgment
+    - Implement alert silencing during maintenance
+  - [ ] Configure Grafana OnCall:
+    - Set up on-call schedules and rotations
+    - Define escalation chains
+    - Configure notification methods (SMS, voice, messaging apps)
+    - Set up integration with incident management tools
+    - Create automated incident response playbooks
+
+### 2. Reliability and Redundancy
+- [ ] Infrastructure Reliability:
+  - [ ] Implement N+2 redundancy for critical components
+  - [ ] Deploy across multiple cloud providers
+  - [ ] Set up automated failover testing
+  - [ ] Configure chaos testing for failure scenarios
+
+- [ ] Network Reliability:
+  - [ ] Deploy redundant network paths
+  - [ ] Implement BGP routing for failover
+  - [ ] Configure bandwidth guarantees
+  - [ ] Set up latency monitoring between regions
+
+- [ ] Data Reliability:
+  - [ ] Implement automated backups with verification
+  - [ ] Configure cross-region data replication
+  - [ ] Set up periodic recovery testing
+  - [ ] Document data consistency procedures
+
+### 3. Release Engineering
+- [ ] Build and Deployment:
+  - [ ] Set up reproducible builds
+  - [ ] Implement automated testing pipeline
+  - [ ] Configure staged rollouts
+  - [ ] Create rollback procedures
+
+- [ ] Version Control:
+  - [ ] Implement semantic versioning
+  - [ ] Set up automated changelog generation
+  - [ ] Configure dependency tracking
+  - [ ] Create version compatibility matrix
 
 ### 2. Validator Creation Process
 - [ ] Infrastructure Prerequisites:
@@ -251,11 +297,13 @@
    - [ ] Implement log rotation and archival
 
 4. Alerting and On-Call:
-   - [ ] Set up on-call rotation schedule
-   - [ ] Implement PagerDuty integration
+   - [ ] Set up on-call rotation schedule in Grafana OnCall
+   - [ ] Configure notification preferences for each engineer
    - [ ] Create incident response playbooks
    - [ ] Configure alert thresholds
    - [ ] Set up escalation policies
+   - [ ] Define maintenance and override procedures
+   - [ ] Implement automated incident routing
 
 5. Validator-specific Monitoring:
    - [ ] Monitor for slashing events
