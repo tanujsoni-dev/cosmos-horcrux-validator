@@ -1,4 +1,16 @@
 ---
+- name: Create user
+  user:
+    name: "{{ node_user }}"
+    home: "{{ node_home }}"
+    state: present
+
+- name: Add user to docker group
+  user:
+    name: "{{ node_user }}"
+    groups: docker
+    append: yes
+
 - name: Install required packages
   apt:
     name: [jq, lz4]

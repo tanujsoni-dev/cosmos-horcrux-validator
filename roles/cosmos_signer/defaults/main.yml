@@ -1,3 +1,4 @@
+node_user: signer
 node_home: /home/signer
 
 # Horcrux signer configuration

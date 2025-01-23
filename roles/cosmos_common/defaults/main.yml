@@ -1,4 +1,5 @@
-node_home: "/home/validator"   # Takes the first user's home
+node_user: validator
+node_home: /home/validator
 
 # Node identification
 node_moniker: "{{ inventory_hostname }}"

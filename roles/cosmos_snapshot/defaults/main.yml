@@ -8,7 +8,6 @@ dirs:
 
 # Node user and group defaults
 node_user: validator
-node_group: validator
 node_home: /home/validator
 
 # Chain binary default
