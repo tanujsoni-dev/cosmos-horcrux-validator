@@ -160,11 +160,12 @@
 - name: Configure config.toml settings
   block:
     - name: Set RPC listen address
-      lineinfile:
+      replace:
         path: "{{ dirs.chain_home }}/config/config.toml"
-        regexp: '^\[rpc\](\n[^\[]*?)^laddr *=.*$'
-        line: '[rpc]\1laddr = "tcp://0.0.0.0{{ network.rpc_laddr_port | default(":26657") }}"'
-        backrefs: yes
+        regexp: '^laddr = '
+        replace: 'laddr = "tcp://0.0.0.0:{{ network.rpc_laddr_port | default("26657") }}"'
+        after: '^\[rpc\]'
+        before: '^\[p2p\]'
       notify: restart chain
 
     - name: Set gRPC listen address
