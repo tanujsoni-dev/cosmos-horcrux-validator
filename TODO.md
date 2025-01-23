@@ -1,3 +1,167 @@
+# Security and Infrastructure Improvements TODO
+
+## Immediate Priority Items
+
+### 1. Essential Monitoring Setup
+- [ ] Vector Configuration for Metrics Collection:
+  - [ ] Configure Vector to collect and forward:
+    - Block signing metrics from validator
+    - Validator uptime metrics via API endpoints
+    - Signer quorum status (3/5 threshold)
+    - Chain sync metrics
+    - System metrics (CPU, memory, disk, network)
+    - Container metrics from Docker
+    - Connection status between validator and signers
+  - [ ] Set up Vector aggregation and processing rules
+  - [ ] Configure secure metrics forwarding to VictoriaMetrics
+
+- [ ] Metrics Storage and Visualization:
+  - [ ] Deploy VictoriaMetrics for metrics storage:
+    - Configure retention policies
+    - Set up data deduplication
+    - Implement backup procedures
+  - [ ] Set up Grafana dashboards:
+    - Validator performance dashboard
+    - Signer health dashboard
+    - System resources dashboard
+    - Network connectivity dashboard
+
+- [ ] Log Collection and Analysis:
+  - [ ] Configure Vector log collection:
+    - Validator logs
+    - Signer logs
+    - System logs
+    - Security logs
+  - [ ] Set up VictoriaLogs:
+    - Configure log retention
+    - Set up log parsing rules
+    - Implement log rotation
+
+- [ ] Alert Strategy Implementation:
+  - [ ] Configure alerting rules in VictoriaMetrics:
+    - Critical: Missed blocks, quorum loss, chain halt
+    - High: Resource exhaustion, sync delays
+    - Medium: Performance degradation
+    - Low: Informational metrics
+  - [ ] Set up alert routing through Alertmanager:
+    - Define notification channels
+    - Configure alert grouping
+    - Set up escalation policies
+  - [ ] Create alert documentation:
+    - Alert severity definitions
+    - Response procedures
+    - Escalation paths
+
+### 2. Validator Creation Process
+- [ ] Infrastructure Prerequisites:
+  - [ ] Hardware requirements documentation
+  - [ ] Network requirements specification
+  - [ ] Security baseline requirements
+  - [ ] Required access and permissions list
+
+- [ ] Step-by-Step Setup Guide:
+  - [ ] Initial server provisioning steps
+  - [ ] Security hardening procedures
+  - [ ] Network configuration guide
+  - [ ] Software installation checklist
+  - [ ] Key generation and backup procedures
+  - [ ] Signer setup and configuration
+  - [ ] Validator initialization process
+  - [ ] Chain connection and sync procedures
+
+- [ ] Validation and Testing:
+  - [ ] Pre-deployment checklist
+  - [ ] Post-deployment verification steps
+  - [ ] Security audit procedures
+  - [ ] Performance baseline establishment
+
+### 3. High Availability Implementation
+- [ ] Redundant Node Configuration:
+  - [ ] Deploy redundant validator nodes in parallel
+  - [ ] Configure each cosigner to connect to multiple sentries
+  - [ ] Implement connection retry and failover logic
+  - [ ] Set up parallel operation monitoring
+  - [ ] Configure connection health checks
+
+- [ ] Geographic Distribution:
+  - [ ] Multi-region deployment strategy for validators and sentries
+  - [ ] Network latency optimization between regions
+  - [ ] Cross-region connectivity monitoring
+  - [ ] Regional failover procedures for sentry connections
+
+- [ ] Disaster Recovery:
+  - [ ] Backup site configuration for validators
+  - [ ] Recovery time objectives definition
+  - [ ] Failover procedures documentation
+  - [ ] Regular testing schedule for failover scenarios
+  - [ ] Document parallel operation recovery procedures
+
+## Critical Security Improvements
+
+### 1. Key Management and Rotation (Highest Priority)
+- [ ] Key Rotation Procedures:
+  - [ ] Validator key rotation process
+  - [ ] Signer key rotation schedule
+  - [ ] Backup key management
+  - [ ] Emergency key recovery procedures
+
+- [ ] Hardware Security:
+  - [ ] HSM integration plan
+  - [ ] Secure key storage implementation
+  - [ ] Physical security requirements
+
+### 2. Sentry Node Architecture
+- [ ] Design and Implementation:
+  - [ ] Sentry node deployment plan
+  - [ ] Private network topology
+  - [ ] DDoS protection strategy
+  - [ ] Traffic filtering rules
+
+### 3. Network Security
+- [ ] Infrastructure:
+  - [ ] VPN setup between components
+  - [ ] Network segmentation implementation
+  - [ ] Firewall rules configuration
+  - [ ] Traffic monitoring setup
+
+## Long-term Improvements
+
+### Infrastructure Modernization
+- [ ] Container Orchestration:
+  - [ ] Evaluate Kubernetes vs Nomad
+  - [ ] Design migration strategy
+  - [ ] Plan zero-downtime transition
+  - [ ] Define high availability requirements
+
+### Security Hardening
+- [ ] Access Control:
+  - [ ] SSH hardening
+  - [ ] Certificate-based authentication
+  - [ ] Jump box implementation
+  - [ ] Audit logging setup
+
+### Backup and Recovery
+- [ ] State Management:
+  - [ ] Automated backup procedures
+  - [ ] Secure backup storage
+  - [ ] Recovery testing schedule
+  - [ ] Documentation updates
+
+## Maintenance and Documentation
+- [ ] Regular Procedures:
+  - [ ] Daily operational checks
+  - [ ] Weekly maintenance tasks
+  - [ ] Monthly security audits
+  - [ ] Quarterly recovery tests
+
+- [ ] Documentation:
+  - [ ] Operational runbooks
+  - [ ] Incident response procedures
+  - [ ] Configuration guides
+  - [ ] Architecture diagrams
+
+## Original Items (Preserved for Reference)
+
 # Security Improvements TODO
 
 ## User Management and Access
@@ -224,10 +388,9 @@
 
 ## Validator-Signer Robustness
 1. High Availability:
-   - [ ] Implement active-passive validator setup
+   - [ ] Implement redundant validator setup
    - [ ] Configure automatic failover mechanisms
    - [ ] Set up health checks and monitoring
-   - [ ] Implement leader election protocol
    - [ ] Configure consensus timeout parameters
 
 2. Signer Redundancy:
@@ -266,8 +429,6 @@
    - [ ] Document recovery steps
 
 7. Security Hardening:
-   - [ ] Implement rate limiting for signing requests
-   - [ ] Configure request validation
    - [ ] Set up request authentication
    - [ ] Monitor signing patterns
    - [ ] Detect anomalous behavior
@@ -304,7 +465,6 @@
 4. Gossip Protocol Hardening:
    - [ ] Configure validator as private node
    - [ ] Disable external connections on validator
-   - [ ] Set up proper peer scoring on sentries
    - [ ] Implement connection rate limiting
    - [ ] Configure proper bandwidth allocation
 
@@ -335,3 +495,68 @@
    - [ ] Set up recovery mechanisms
    - [ ] Document operational procedures
    - [ ] Create troubleshooting guides
+
+## Critical Improvements Priority List
+
+1. Monitoring Strategy:
+   - [ ] Define key metrics to monitor:
+     - [ ] Block signing rate and missed blocks
+     - [ ] Validator uptime and responsiveness
+     - [ ] Signer quorum health (3/5 availability)
+     - [ ] System resources (CPU, memory, disk, network)
+     - [ ] Chain sync status and block height
+   - [ ] Alert configuration:
+     - [ ] Define critical alert thresholds
+     - [ ] Set up alert severity levels
+     - [ ] Create alert routing rules
+     - [ ] Configure alert aggregation
+   - [ ] Monitoring architecture:
+     - [ ] Prometheus metrics exposition
+     - [ ] Grafana dashboard templates
+     - [ ] Log aggregation strategy
+     - [ ] Alert manager configuration
+
+2. Validator Creation Process:
+   - [ ] Document step-by-step validator setup:
+     - [ ] Infrastructure provisioning checklist
+     - [ ] Security hardening steps
+     - [ ] Network configuration requirements
+     - [ ] Key generation and backup procedures
+   - [ ] Automate deployment process:
+     - [ ] Create infrastructure as code templates
+     - [ ] Implement configuration management
+     - [ ] Set up CI/CD pipelines
+   - [ ] Validation and testing:
+     - [ ] Pre-flight checks
+     - [ ] Post-deployment verification
+     - [ ] Security audit procedures
+
+3. High Availability Implementation:
+   - [ ] Active-Active configuration:
+     - [ ] Deploy redundant validator nodes
+     - [ ] Implement leader election
+     - [ ] Configure automatic failover
+     - [ ] Set up load balancing
+   - [ ] Geographic distribution:
+     - [ ] Multi-region deployment
+     - [ ] Network latency optimization
+     - [ ] Cross-region synchronization
+   - [ ] Disaster recovery:
+     - [ ] Backup site configuration
+     - [ ] Recovery time objectives
+     - [ ] Failover procedures
+
+4. Critical Security Enhancements:
+   - [ ] Key Management and Rotation:
+     - [ ] Implement secure key rotation procedures
+     - [ ] Set up Hardware Security Modules (HSM)
+     - [ ] Define key backup strategy
+     - [ ] Create emergency key recovery procedures
+   - [ ] Sentry Node Architecture:
+     - [ ] Deploy sentry nodes for validator protection
+     - [ ] Configure private network topology
+     - [ ] Implement DDoS protection
+   - [ ] Network Security:
+     - [ ] Set up VPN infrastructure
+     - [ ] Implement network segmentation
+     - [ ] Configure firewall rules
