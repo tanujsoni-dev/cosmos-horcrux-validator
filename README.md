@@ -105,12 +105,27 @@ ansible-playbook -i inventory.yml playbooks/deploy_signer.yml
 ssh user@signer-node
 
 # Get validator address and pubkey from Horcrux signer
-# Note: This MUST be done from a signer node, not the validator
 docker compose exec noble-testnet-cosigner-1 horcrux address grand-1 noble
 
 # Example output:
-# Address: noblevaloper1...
-# Pubkey: {"@type":"/cosmos.crypto.ed25519.PubKey","key":"..."}
+# {
+#   "HexAddress": "1E8B17F49F36526CD6CEA3122EFB739F437BA735",
+#   "PubKey": "{\"@type\":\"/cosmos.crypto.ed25519.PubKey\",\"key\":\"CMkI5XIcfprOpg1arNaPQevBvRiz3usA4PrWdXPoPsE=\"}",
+#   "ValConsAddress": "noblevalcons1r6930aylxefxe4kw5vfza7mnnaphhfe4zn6ahf",
+#   "ValConsPubAddress": "noblevalconspub1zcjduepqprys3etjr3lf4n4xp4d2e450g84ur0gck00wkq8qltt82ulg8mqsgpagey"
+# }
+
+# Convert HexAddress to Bech32
+# Using the Noble Docker image:
+docker run --rm ghcr.io/strangelove-ventures/heighliner/noble:v8.0.0-rc.4 nobled debug addr 1E8B17F49F36526CD6CEA3122EFB739F437BA735
+
+# Example output:
+# Address: [30 139 23 244 159 54 82 108 214 206 163 18 46 251 115 159 67 123 167 53]
+# Address (hex): 1E8B17F49F36526CD6CEA3122EFB739F437BA735
+# Bech32 Acc: noble1r6930aylxefxe4kw5vfza7mnnaphhfe4cs93dk
+# Bech32 Val: noblevaloper1r6930aylxefxe4kw5vfza7mnnaphhfe4kqfpmg
+# Bech32 Con: noblevalcons1r6930aylxefxe4kw5vfza7mnnaphhfe4zn6ahf
+
 ```
 Save both the validator address (starts with 'noblevaloper') and complete pubkey JSON for staking.
 
@@ -141,7 +156,6 @@ nobled tx staking create-validator \
   --commission-max-change-rate="0.01" \
   --min-self-delegation="1"
 ```
-
 ## Monitoring
 ```bash
 # Validator status (from validator node)
@@ -164,9 +178,64 @@ sudo ufw status
 1. **Connection Issues**
    - UFW rules
    - Signer IP verification
-   - Port 2053 accessibility
+   - Port 2024 accessibility
 
 2. **Signing Issues**
    - Horcrux logs
    - Threshold verification
    - Network connectivity
+
+
+docker compose logs -f
+```
+Note: Validator may show "unable to get pubkey from private validator" initially. This is normal:
+- Validator restarts automatically
+- Waits for cosigner connection
+- Starts syncing once any cosigner connects
+- Becomes ready for staking after sync
+
+3. **Staking Setup**
+- Use external wallet with sufficient funds
+- Stake tokens to validator address from step 1
+- Command example:
+```bash
+nobled tx staking create-validator \
+  --amount=1000000utoken \
+  --pubkey=<PUBKEY_FROM_HORCRUX> \
+  --moniker="validator-name" \
+  --chain-id=grand-1 \
+  --from=<WALLET_ADDRESS> \
+  --commission-rate="0.10" \
+  --commission-max-rate="0.20" \
+  --commission-max-change-rate="0.01" \
+  --min-self-delegation="1"
+```
+## Monitoring
+```bash
+# Validator status (from validator node)
+cd /home/validator
+docker compose logs -f
+
+# Signer status (from signer node)
+cd /home/signer
+docker compose logs -f
+
+# Monitor specific signer
+cd /home/signer
+docker compose logs -f noble-testnet-cosigner-1
+
+# Firewall rules
+sudo ufw status
+```
+
+## Troubleshooting
+1. **Connection Issues**
+   - UFW rules
+   - Signer IP verification
+   - Port 2024 accessibility
+
+2. **Signing Issues**
+   - Horcrux logs
+   - Threshold verification
+   - Network connectivity
+
