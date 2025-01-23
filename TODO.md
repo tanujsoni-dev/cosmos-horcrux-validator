@@ -34,9 +34,37 @@
 1. Replace Docker with Podman:
    - [ ] Migrate from Docker to rootless Podman
    - [ ] Configure pod security policies
-   - [ ] Set up container networking
+   - [x] Set up container networking
    - [ ] Implement image verification
    - [ ] Configure storage backends
+
+2. Container Health and Recovery:
+   - [ ] Add health check endpoints to all containers:
+     - [ ] Validator node health checks
+     - [ ] Signer node health checks
+     - [ ] Metrics endpoint for monitoring
+     - [ ] Liveness and readiness probes
+   - [ ] Configure automatic container restarts
+   - [ ] Implement proper graceful shutdowns
+   - [ ] Set up container resource limits
+
+3. Orchestration Platform Migration:
+   - [ ] Evaluate orchestration platforms:
+     - [ ] Kubernetes evaluation
+     - [ ] Nomad evaluation
+     - [ ] Other container orchestrators
+   - [ ] Design migration strategy:
+     - [ ] Zero-downtime migration plan
+     - [ ] State persistence strategy
+     - [ ] Network policy migration
+   - [ ] Implement self-healing capabilities:
+     - [ ] Automatic node replacement
+     - [ ] Cross-VM migration
+     - [ ] State recovery automation
+   - [ ] Configure high availability:
+     - [ ] Multi-zone deployment
+     - [ ] Automatic failover
+     - [ ] Load balancing
 
 ## Monitoring and Observability
 1. Add sidecar containers (Vector) for:
